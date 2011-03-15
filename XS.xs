@@ -28,6 +28,8 @@
 #define CHAR_CTL_DEL  127
 #define CHAR_CTL_CSI  255
 
+#define _IS_CTL(C) ((C) >= 0 && (C) < 32)
+
 #define CHAR_ESC_RIS     "c"
 #define CHAR_ESC_IND     "D"
 #define CHAR_ESC_NEL     "E"
@@ -94,7 +96,7 @@ typedef struct _VT_OPTIONS {
     I8 linewrap;
     I8 lftocrlf;
     I8 ignorexoff;
-    I16  attr; /* uh, whatever pack('S', $foo); returns */
+    I16  attr;
 } VT_OPTIONS;
 
 typedef struct _VT_SWITCHES {
@@ -110,17 +112,51 @@ typedef struct _VT_SWITCHES {
     VT_OPTIONS options;
 
     /* internal toggles */
-
     I8 in_esc;
+    I8 xon;
+
 } VT_SWITCHES;
 
-SV* _process(SV* sv_buf)
+SV* _process(SV* self, SV* sv_in)
 {
-    char* buf = SvPV(sv_buf, PL_na);
+    char* buf = SvPV(sv_in, PL_na);
+    STRLEN c;
 
-    if (buf[0]) buf[0] = 'Z';
+    for ( c = 0; c < strlen(buf); ++c ) {
+        if ( _IS_CTL( buf[c] ) ) {
+            _process_ctl(self, c);
+        }
+    }
 
     return sv_buf;
+}
+
+SV* _process_ctl(SV* self, char **_buf)
+{
+    SWITCHES* switches;
+    _GET_SWITCHES(switches, self);
+
+    char* buf = *_buf;
+    char c = buf[0];
+    buf++;
+
+    if ( switches->xon == 0 )
+        return;
+
+    if (c == CHAR_CTL_BS)
+        if(switches->x > 1) --switches->x;
+
+    if (c == CHAR_CTL_CAN) {
+        /* TODO make switches->buf undef */
+        switches->in_esc = 0;
+    }
+
+    if (CHAR_CTL_TBC) {
+
+    }
+
+    /* bring _buf to the new spot in the string */
+    _buf = *buf;
 }
 
 void _init(SV* self)
@@ -144,14 +180,18 @@ new(class)
   PREINIT:
     SV* self;
     VT_SWITCHES *switches;
-    SV* isv;
+    SV* iv_addr;
   CODE:
+    /* allocate a SWITCHES instance */
     New(0, switches, 1, VT_SWITCHES);
 
-    isv = newSViv( PTR2IV(switches) );
+    /* $iv_addr = 0xDEADBEEF in an IV */
+    iv_addr = newSViv( PTR2IV(switches) );
 
+    /* my $self = \$iv_addr */
     self = newRV(isv);
 
+    /* bless($iv_addr, $class) */
     sv_bless(self, gv_stashsv(class, 0));
 
     _init(self);
@@ -167,6 +207,6 @@ process(self, buf)
     if (!SvPOK(buf))
         croak("Argument must be a string");
 
-    RETVAL = _process(buf);
+    RETVAL = _process(self, buf);
   OUTPUT:
     RETVAL
