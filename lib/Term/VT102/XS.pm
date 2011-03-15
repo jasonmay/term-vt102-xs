@@ -2,6 +2,8 @@ package Term::VT102::XS;
 use strict;
 use warnings;
 
+our $VERSION = '0.01';
+
 require XSLoader;
 XSLoader::load('Term::VT102::XS', $VERSION);
 
