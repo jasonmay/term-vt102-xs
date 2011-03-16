@@ -41,7 +41,6 @@
 #define CHAR_ESC_CSI     "["
 #define CHAR_ESC_IGN     "[["
 #define CHAR_ESC_CSDFL   "%@"
-#define CHAR_ESC_CSUTF8  "%G"
 #define CHAR_ESC_CSUTF8  "%8"
 #define CHAR_ESC_DECALN  "#8"
 #define CHAR_ESC_G0DFL   "(8"
@@ -90,7 +89,7 @@
 #define COLOR_DARK  0
 #define COLOR_LIGHT 1
 
-#define _GET_SWITCHES(V, O) V = INT2PTR(SWITCHES*, SvIV(SvRV(O)))
+#define _GET_SWITCHES(V, O) V = INT2PTR(VT_SWITCHES*, SvIV(SvRV(O)))
 
 typedef struct _VT_OPTIONS {
     I8 linewrap;
@@ -117,27 +116,12 @@ typedef struct _VT_SWITCHES {
 
 } VT_SWITCHES;
 
-SV* _process(SV* self, SV* sv_in)
+SV* _process_ctl(SV* self, char *buf)
 {
-    char* buf = SvPV(sv_in, PL_na);
-    STRLEN c;
-
-    for ( c = 0; c < strlen(buf); ++c ) {
-        if ( _IS_CTL( buf[c] ) ) {
-            _process_ctl(self, c);
-        }
-    }
-
-    return sv_buf;
-}
-
-SV* _process_ctl(SV* self, char **_buf)
-{
-    SWITCHES* switches;
+    VT_SWITCHES* switches;
     _GET_SWITCHES(switches, self);
 
-    char* buf = *_buf;
-    char c = buf[0];
+    char c = *buf;
     buf++;
 
     if ( switches->xon == 0 )
@@ -151,23 +135,34 @@ SV* _process_ctl(SV* self, char **_buf)
         switches->in_esc = 0;
     }
 
-    if (CHAR_CTL_TBC) {
-
-    }
-
-    /* bring _buf to the new spot in the string */
-    _buf = *buf;
 }
 
 void _init(SV* self)
 {
-    SWITCHES* switches;
+    VT_SWITCHES* switches;
     _GET_SWITCHES(switches, self);
 
     switches->x = switches->y = 1;
 
     switches->cols = DEFAULT_COLS;
     switches->rows = DEFAULT_ROWS;
+}
+
+SV* _process(SV* self, SV* sv_in)
+{
+    /*SvREFCNT_inc(sv_in);
+    char *buf = SvPV(sv_in, PL_na);
+    STRLEN c;
+
+    printf("%d\n", __LINE__);
+    for (; *buf != '\0'; ++buf) {
+        if ( _IS_CTL( *buf ) ) {
+            _process_ctl(self, buf);
+        }
+    }
+    printf("%d\n", __LINE__); */
+
+    return newSViv(1);
 }
 
 MODULE = Term::VT102::XS        PACKAGE = Term::VT102::XS
@@ -182,14 +177,14 @@ new(class)
     VT_SWITCHES *switches;
     SV* iv_addr;
   CODE:
-    /* allocate a SWITCHES instance */
+    /* allocate a VT_SWITCHES instance */
     New(0, switches, 1, VT_SWITCHES);
 
     /* $iv_addr = 0xDEADBEEF in an IV */
     iv_addr = newSViv( PTR2IV(switches) );
 
     /* my $self = \$iv_addr */
-    self = newRV(isv);
+    self = newRV(iv_addr);
 
     /* bless($iv_addr, $class) */
     sv_bless(self, gv_stashsv(class, 0));
@@ -202,7 +197,8 @@ new(class)
 
 SV*
 process(self, buf)
-    SV* buf
+    SV *self
+    SV *buf
   CODE:
     if (!SvPOK(buf))
         croak("Argument must be a string");
