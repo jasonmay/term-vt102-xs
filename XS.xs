@@ -131,17 +131,27 @@ SV* _process_ctl(SV* self, char *buf)
         if(switches->x > 1) --switches->x;
 
     if (c == CHAR_CTL_CAN) {
-        /* TODO make switches->buf undef */
+         TODO make switches->buf undef 
         switches->in_esc = 0;
     }
-
+*/
 }
 
-void _init(SV* self)
+STATIC I32 _process_text(SV* self, char **buf)
 {
     VT_SWITCHES* switches;
     _GET_SWITCHES(switches, self);
 
+    printf("term size set to: %dx%d\n", switches->rows, switches->cols);
+    switches->x++;
+    (*buf)++;
+    printf("char: %c...\n", **buf);
+
+    return 0;
+}
+
+void _init(VT_SWITCHES *switches)
+{
     switches->x = switches->y = 1;
 
     switches->cols = DEFAULT_COLS;
@@ -150,19 +160,52 @@ void _init(SV* self)
 
 SV* _process(SV* self, SV* sv_in)
 {
-    /*SvREFCNT_inc(sv_in);
     char *buf = SvPV(sv_in, PL_na);
     STRLEN c;
 
-    printf("%d\n", __LINE__);
-    for (; *buf != '\0'; ++buf) {
+    while (*buf != '\0') {
+
         if ( _IS_CTL( *buf ) ) {
-            _process_ctl(self, buf);
+            _process_ctl(self, &buf);
         }
+        else if ( *buf != 127) {
+            _process_text(self, &buf);
+        }
+        else {
+            ++buf;
+        }
+
+        printf("%c!\n", *buf);
     }
-    printf("%d\n", __LINE__); */
 
     return newSViv(1);
+}
+
+void _check_rows_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches) {
+    char *param = SvPV_nolen( sv_param );
+
+    if ( strEQ(param, "rows") ) {
+        printf("hey! %d\n", __LINE__);
+        if ( SvIOK( sv_value ) ) {
+            switches->rows = SvIV(sv_value);
+        }
+        else {
+            croak("rows => INTEGER, ...");
+        }
+    };
+}
+
+void _check_cols_param(SV *sv_param, SV *sv_value, VT_SWITCHES **switches) {
+    char *param = SvPV_nolen( sv_param );
+
+    if ( strEQ(param, "cols") ) {
+        if ( SvIOK( sv_value ) ) {
+            (*switches)->cols = SvIV(sv_value);
+        }
+        else {
+            croak("cols => INTEGER, ...");
+        }
+    };
 }
 
 MODULE = Term::VT102::XS        PACKAGE = Term::VT102::XS
@@ -170,18 +213,37 @@ MODULE = Term::VT102::XS        PACKAGE = Term::VT102::XS
 PROTOTYPES: DISABLE
 
 SV*
-new(class)
+new(class, ...)
     SV* class
   PREINIT:
     SV* self;
     VT_SWITCHES *switches;
     SV* iv_addr;
-  CODE:
-    /* allocate a VT_SWITCHES instance */
-    New(0, switches, 1, VT_SWITCHES);
+    int i;
+  PPCODE:
+
+
+    if (items > 1) {
+        if (items % 2 == 0) {
+            croak("->new takes named parameters or a hash.");
+        }
+
+        /* allocate a VT_SWITCHES instance */
+        New(0, switches, 1, VT_SWITCHES);
+
+        _init(switches);
+
+        for (i = 1; i < items; i += 2) {
+            if (!SvPOK( ST(i) )) croak("Invalid constructor parameter");
+
+            printf("i: %d\n", i);
+            _check_rows_param( ST(i), ST(i+1), switches );
+            _check_cols_param( ST(i), ST(i+1), &switches );
+        }
+    }
 
     /* $iv_addr = 0xDEADBEEF in an IV */
-    iv_addr = newSViv( PTR2IV(switches) );
+    iv_addr = sv_2mortal( newSViv( PTR2IV(switches) ) );
 
     /* my $self = \$iv_addr */
     self = newRV(iv_addr);
@@ -189,11 +251,8 @@ new(class)
     /* bless($iv_addr, $class) */
     sv_bless(self, gv_stashsv(class, 0));
 
-    _init(self);
 
-    RETVAL = self;
-  OUTPUT:
-    RETVAL
+  mXPUSHs(self);
 
 SV*
 process(self, buf)
