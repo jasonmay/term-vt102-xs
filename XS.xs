@@ -6,6 +6,18 @@
 
 #include <stdio.h>
 
+/* NOTE:
+ *
+ * So yeah... I haven't written C
+ * in like five or six years. If you
+ * see something that might look a
+ * little off, chances are it is!
+ * Please let me know if you spot
+ * anything.
+ *
+ * - jasonmay
+ */
+
 #define DEFAULT_COLS 80
 #define DEFAULT_ROWS 24
 
