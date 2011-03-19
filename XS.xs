@@ -390,7 +390,7 @@ row_plaintext(self, sv_rownum)
     _GET_SWITCHES(switches, self);
 
     if ( !SvIOK(sv_rownum) )
-        croak("row_plaintext takes an integer.");
+        croak("row_plaintext: Please provide a row# for the argument.");
 
     rownum = SvIV(sv_rownum);
 
