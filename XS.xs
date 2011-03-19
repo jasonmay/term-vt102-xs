@@ -183,14 +183,15 @@ SV* _process_ctl(SV* self, char **buf)
 
     if (c == CHAR_CTL_LF) {
         switches->x = 0;
-        if (switches->y < switches->num_rows-1) switches->y++;
+        _inc_y(switches);
     }
 }
 
 STATIC I32 _process_text(SV* self, char **buf)
 {
-    VT_SWITCHES* switches;
-    VT_CELL *cell;
+    VT_SWITCHES *switches;
+    VT_CELL     *cell;
+
     _GET_SWITCHES(switches, self);
 
     cell = &switches->rows[switches->y].cells[switches->x];
@@ -211,6 +212,7 @@ STATIC I32 _process_text(SV* self, char **buf)
 void _init(VT_SWITCHES *switches)
 {
     int x, y;
+    VT_CELL *cur_cell;
 
     /* allocate rows */
     New(0, switches->rows, switches->num_rows, VT_ROW);
@@ -221,9 +223,12 @@ void _init(VT_SWITCHES *switches)
         New(0, switches->rows[y].cells, switches->num_cols, VT_CELL);
 
         for (x = 0; x < switches->num_cols; ++x) {
-            switches->rows[y].cells[x].attr = 0;
-            switches->rows[y].cells[x].used = 0;
-            switches->rows[y].cells[x].value = '\0';
+            cur_cell = &switches->rows[y].cells[x];
+
+            if (0)printf("switches->x: %d\n", switches->x);
+            cur_cell->attr = 0;
+            cur_cell->used = 0;
+            cur_cell->value = '\0';
         }
     }
 
@@ -277,12 +282,35 @@ void _check_cols_param(SV *sv_param, SV *sv_value, VT_SWITCHES **switches) {
     };
 }
 
+void _clear_row(VT_SWITCHES *switches, int row) {
+    int x;
+
+    for (x = 0; x < switches->num_cols; ++x) {
+        switches->rows[row].cells[x].value = '\0';
+        switches->rows[row].cells[x].attr  = 0;
+        switches->rows[row].cells[x].used  = 0;
+    }
+}
+
 void _inc_y(VT_SWITCHES *switches) {
-    /* TODO: if y > num_rows, move everything up, etc */
+    int row;
+    int end_index = switches->num_rows - 1;
+    VT_ROW *first_row;
+
     switches->y++;
 
     if (switches->y >= switches->num_rows) {
+        switches->y = end_index;
 
+        /* row 0 will be overwritten, store it 
+         * to use for the last row */
+        first_row = &switches->rows[0];
+
+        /* move every row pointer up one */
+        for (row = 0; row < end_index; ++row) {
+            switches->rows[row] = switches->rows[row + 1];
+        }
+        switches->rows[end_index] = *first_row;
     }
 }
 
@@ -375,11 +403,14 @@ row_plaintext(self, sv_rownum)
     for (i = 0; i < switches->num_cols; ++i) {
         cell = &switches->rows[rownum-1].cells[i];
 
-        retbuf[i] = cell->value ? cell->value : ' ';
+        /*printf("Text: %d, x=%d y=%d\n",
+            retbuf[i], i, rownum-1);*/
+
+        retbuf[i] = cell->used ? cell->value : ' ';
     }
 
     retbuf[switches->num_cols] = '\0';
-    ret = newSVpv(retbuf, switches->num_cols);
+    ret = newSVpv(retbuf, switches->num_cols + 1);
     Safefree(retbuf);
 
     RETVAL = ret;
