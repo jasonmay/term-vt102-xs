@@ -99,8 +99,9 @@ typedef struct _VT_OPTIONS {
 } VT_OPTIONS;
 
 typedef struct _VT_CELL {
-    I16 attr;
+    I16  attr;
     char value;
+    I8   used;
 } VT_CELL;
 
 typedef struct _VT_ROW {
@@ -152,9 +153,12 @@ STATIC I32 _process_text(SV* self, char **buf)
     VT_CELL *cell;
     _GET_SWITCHES(switches, self);
 
-    cell = &switches->rows[switches->y].cells[switches->x];
+    cell = &switches->rows[switches->y-1].cells[switches->x-1];
 
     cell->value = **buf;
+    cell->used  = 1;
+
+    /*printf("x=%d y=%d value='%c'\n", switches->x, switches->y, **buf);*/
 
     switches->x++;
     if (switches->x > switches->num_rows) {
@@ -169,15 +173,18 @@ STATIC I32 _process_text(SV* self, char **buf)
 void _init(VT_SWITCHES *switches)
 {
     int x, y;
+
     /* allocate rows */
     New(0, switches->rows, switches->num_rows, VT_ROW);
 
     for (y = 0; y < switches->num_rows; ++y) {
+
         /* allocate cells for row y */
         New(0, switches->rows[y].cells, switches->num_cols, VT_CELL);
 
         for (x = 0; x < switches->num_cols; ++x) {
             switches->rows[y].cells[x].attr = 0;
+            switches->rows[y].cells[x].used = 0;
             switches->rows[y].cells[x].value = '\0';
         }
     }
@@ -297,6 +304,49 @@ process(self, buf)
   OUTPUT:
     RETVAL
 
+SV*
+row_plaintext(self, sv_rownum)
+    SV *self
+    SV *sv_rownum
+  PREINIT:
+    VT_SWITCHES *switches;
+    SV          *ret;
+    char        *retbuf;
+    int          i;
+    int          rownum;
+    VT_CELL     *cell;
+  CODE:
+    _GET_SWITCHES(switches, self);
+    if ( !SvIOK(sv_rownum) )
+        croak("row_plaintext takes an integer.");
+
+    rownum = SvIV(sv_rownum);
+
+    if (rownum < 1 || rownum >= switches->num_cols) {
+        croak("row_plaintext: Argument out of range!");
+    }
+
+    New(0, retbuf, switches->num_cols + 1, char);
+
+    for (i = 0; i < switches->num_cols; ++i) {
+        cell = &switches->rows[rownum-1].cells[i];
+        /*printf("    x=%d y=%d value='%c'\n", i, rownum-1, cell->value);*/
+
+        retbuf[i] = cell->value ? cell->value : ' ';
+        /*printf("%c:", retbuf[i]);*/
+    }
+
+    retbuf[switches->num_cols] = '\0';
+
+    ret = newSVpv(retbuf, switches->num_cols);
+
+    Safefree(retbuf);
+
+    RETVAL = ret;
+  OUTPUT:
+    RETVAL
+
+
 void
 DESTROY(self)
     SV *self
@@ -310,4 +360,3 @@ DESTROY(self)
     }
     Safefree(switches->rows);
     Safefree(switches);
-    printf("Destroyed! A good thing! :)\n");
