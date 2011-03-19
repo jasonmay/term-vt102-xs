@@ -139,19 +139,47 @@ typedef struct _VT_SWITCHES {
 
 } VT_SWITCHES;
 
+/* prototypes */
+VT_CELL *_current_cell(VT_SWITCHES *);
+SV* _process_ctl(SV*, char **);
+void _inc_y(VT_SWITCHES *);
+
+
+/* functions */
+
+VT_CELL *_current_cell(VT_SWITCHES *switches) {
+    int x = switches->x,
+        y = switches->y;
+
+    return &switches->rows[y].cells[x];
+}
+
 SV* _process_ctl(SV* self, char **buf)
 {
     VT_SWITCHES* switches;
     _GET_SWITCHES(switches, self);
+    VT_CELL *current_cell;
+
+    /* back to current because these are all zero-width */
+    if(switches->x > 0) --switches->x;
+
+    current_cell = _current_cell(switches);
 
     char c = **buf;
-    *buf++;
+    (*buf)++;
 
     if ( switches->xon == 0 )
         return;
 
-    if (c == CHAR_CTL_BS)
+    if (c == CHAR_CTL_BS) {
+
+        current_cell->attr  = 0;
+        current_cell->used  = 0;
+        current_cell->value = '\0';
+
+        /* dec. because we are backspacing */
         if(switches->x > 0) --switches->x;
+    }
 
     if (c == CHAR_CTL_LF) {
         switches->x = 0;
@@ -198,15 +226,16 @@ void _init(VT_SWITCHES *switches)
             switches->rows[y].cells[x].value = '\0';
         }
     }
+
+    switches->xon = 1;
 }
 
-SV* _process(SV* self, SV* sv_in)
+void _process(SV* self, SV* sv_in)
 {
     char *buf = SvPV_nolen(sv_in);
     STRLEN c;
 
     while (*buf != '\0') {
-
         if ( _IS_CTL( *buf ) ) {
             _process_ctl(self, &buf);
         }
@@ -219,7 +248,7 @@ SV* _process(SV* self, SV* sv_in)
 
     }
 
-    return newSViv(1);
+    return;
 }
 
 void _check_rows_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches) {
@@ -292,26 +321,22 @@ new(class, ...)
 
     /* $iv_addr = 0xDEADBEEF in an IV */
     iv_addr = newSViv( PTR2IV(switches) );
-    /* fprintf(stderr, "iv_addr: "); sv_dump(iv_addr); */
 
     /* my $self = \$iv_addr */
     self = newRV_noinc(iv_addr);
-    /* fprintf(stderr, "self: "); sv_dump(self);*/
 
     /* bless($iv_addr, $class) */
     sv_bless(self, gv_stashsv(class, 0));
-    /*fprintf(stderr, "self (again): "); sv_dump(self);*/
-    /*fprintf(stderr, "class: "); sv_dump(class);*/
 
     /* allocate all my shit */
     _init(switches);
 
     /* return $self */
     RETVAL = self;
-    OUTPUT:
+  OUTPUT:
     RETVAL
 
-SV*
+void
 process(self, buf)
     SV *self
     SV *buf
@@ -319,9 +344,7 @@ process(self, buf)
     if (!SvPOK(buf))
         croak("Argument must be a string");
 
-    RETVAL = _process(self, buf);
-  OUTPUT:
-    RETVAL
+    _process(self, buf);
 
 SV*
 row_plaintext(self, sv_rownum)
