@@ -98,14 +98,24 @@ typedef struct _VT_OPTIONS {
     I16  attr;
 } VT_OPTIONS;
 
+typedef struct _VT_CELL {
+    I16 attr;
+    char value;
+} VT_CELL;
+
+typedef struct _VT_ROW {
+    VT_CELL *cells; /* array of cells (switches->num_cols) */
+} VT_ROW;
+
 typedef struct _VT_SWITCHES {
     I32 x;
     I32 y;
-    I32 cols;
-    I32 rows;
+    I32 num_cols;
+    I32 num_rows;
     I32 cursor;
-    AV* scra;
-    AV* scrt;
+
+    VT_ROW *rows; /* array of rows (switches->num_rows) */
+
     SV* buf;
 
     VT_OPTIONS options;
@@ -116,13 +126,13 @@ typedef struct _VT_SWITCHES {
 
 } VT_SWITCHES;
 
-SV* _process_ctl(SV* self, char *buf)
+SV* _process_ctl(SV* self, char **buf)
 {
     VT_SWITCHES* switches;
     _GET_SWITCHES(switches, self);
 
-    char c = *buf;
-    buf++;
+    char c = **buf;
+    *buf++;
 
     if ( switches->xon == 0 )
         return;
@@ -130,11 +140,10 @@ SV* _process_ctl(SV* self, char *buf)
     if (c == CHAR_CTL_BS)
         if(switches->x > 1) --switches->x;
 
-    if (c == CHAR_CTL_CAN) {
-         TODO make switches->buf undef 
-        switches->in_esc = 0;
+    if (c == CHAR_CTL_LF) {
+        switches->x = 1;
+        if (switches->y < switches->num_rows) switches->y++;
     }
-*/
 }
 
 STATIC I32 _process_text(SV* self, char **buf)
@@ -142,10 +151,12 @@ STATIC I32 _process_text(SV* self, char **buf)
     VT_SWITCHES* switches;
     _GET_SWITCHES(switches, self);
 
-    printf("term size set to: %dx%d\n", switches->rows, switches->cols);
     switches->x++;
+    if (switches->x > switches->num_rows) {
+        switches->x = 1;
+    }
+
     (*buf)++;
-    printf("char: %c...\n", **buf);
 
     return 0;
 }
@@ -154,13 +165,13 @@ void _init(VT_SWITCHES *switches)
 {
     switches->x = switches->y = 1;
 
-    switches->cols = DEFAULT_COLS;
-    switches->rows = DEFAULT_ROWS;
+    switches->num_cols = DEFAULT_COLS;
+    switches->num_rows = DEFAULT_ROWS;
 }
 
 SV* _process(SV* self, SV* sv_in)
 {
-    char *buf = SvPV(sv_in, PL_na);
+    char *buf = SvPV_nolen(sv_in);
     STRLEN c;
 
     while (*buf != '\0') {
@@ -175,7 +186,6 @@ SV* _process(SV* self, SV* sv_in)
             ++buf;
         }
 
-        printf("%c!\n", *buf);
     }
 
     return newSViv(1);
@@ -185,9 +195,8 @@ void _check_rows_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches) {
     char *param = SvPV_nolen( sv_param );
 
     if ( strEQ(param, "rows") ) {
-        printf("hey! %d\n", __LINE__);
         if ( SvIOK( sv_value ) ) {
-            switches->rows = SvIV(sv_value);
+            switches->num_rows = SvIV(sv_value);
         }
         else {
             croak("rows => INTEGER, ...");
@@ -200,7 +209,7 @@ void _check_cols_param(SV *sv_param, SV *sv_value, VT_SWITCHES **switches) {
 
     if ( strEQ(param, "cols") ) {
         if ( SvIOK( sv_value ) ) {
-            (*switches)->cols = SvIV(sv_value);
+            (*switches)->num_cols = SvIV(sv_value);
         }
         else {
             croak("cols => INTEGER, ...");
