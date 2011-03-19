@@ -149,7 +149,12 @@ SV* _process_ctl(SV* self, char **buf)
 STATIC I32 _process_text(SV* self, char **buf)
 {
     VT_SWITCHES* switches;
+    VT_CELL *cell;
     _GET_SWITCHES(switches, self);
+
+    cell = &switches->rows[switches->y].cells[switches->x];
+
+    cell->value = **buf;
 
     switches->x++;
     if (switches->x > switches->num_rows) {
@@ -163,10 +168,19 @@ STATIC I32 _process_text(SV* self, char **buf)
 
 void _init(VT_SWITCHES *switches)
 {
-    switches->x = switches->y = 1;
+    int x, y;
+    /* allocate rows */
+    New(0, switches->rows, switches->num_rows, VT_ROW);
 
-    switches->num_cols = DEFAULT_COLS;
-    switches->num_rows = DEFAULT_ROWS;
+    for (y = 0; y < switches->num_rows; ++y) {
+        /* allocate cells for row y */
+        New(0, switches->rows[y].cells, switches->num_cols, VT_CELL);
+
+        for (x = 0; x < switches->num_cols; ++x) {
+            switches->rows[y].cells[x].attr = 0;
+            switches->rows[y].cells[x].value = '\0';
+        }
+    }
 }
 
 SV* _process(SV* self, SV* sv_in)
@@ -225,14 +239,17 @@ SV*
 new(class, ...)
     SV* class
   PREINIT:
-    SV* self;
-    VT_SWITCHES *switches;
-    SV* iv_addr;
-    int i;
-  PPCODE:
+        SV* self;
+        VT_SWITCHES *switches;
+        SV* iv_addr;
+        int i;
+  CODE:
 
     New(0, switches, 1, VT_SWITCHES);
-    _init(switches);
+
+    switches->num_cols        = DEFAULT_COLS;
+    switches->num_rows        = DEFAULT_ROWS;
+    switches->x = switches->y = 1;
 
     if (items > 1) {
         if (items % 2 == 0) {
@@ -249,16 +266,24 @@ new(class, ...)
 
     /* $iv_addr = 0xDEADBEEF in an IV */
     iv_addr = newSViv( PTR2IV(switches) );
+    /* fprintf(stderr, "iv_addr: "); sv_dump(iv_addr); */
 
     /* my $self = \$iv_addr */
     self = newRV_noinc(iv_addr);
+    /* fprintf(stderr, "self: "); sv_dump(self);*/
 
     /* bless($iv_addr, $class) */
     sv_bless(self, gv_stashsv(class, 0));
+    /*fprintf(stderr, "self (again): "); sv_dump(self);*/
+    /*fprintf(stderr, "class: "); sv_dump(class);*/
+
+    /* allocate all my shit */
+    _init(switches);
 
     /* return $self */
-    mXPUSHs(self);
-    /*mXPUSHs(sv_2mortal(newSViv(42)));*/
+    RETVAL = self;
+    OUTPUT:
+    RETVAL
 
 SV*
 process(self, buf)
@@ -277,7 +302,12 @@ DESTROY(self)
     SV *self
   PREINIT:
     VT_SWITCHES *switches;
+    int i;
   CODE:
     _GET_SWITCHES(switches, self);
+    for (i = 0; i < switches->num_rows; ++i) {
+        Safefree(switches->rows[i].cells);
+    }
+    Safefree(switches->rows);
     Safefree(switches);
     printf("Destroyed! A good thing! :)\n");
