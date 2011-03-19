@@ -231,37 +231,34 @@ new(class, ...)
     int i;
   PPCODE:
 
+    New(0, switches, 1, VT_SWITCHES);
+    _init(switches);
 
     if (items > 1) {
         if (items % 2 == 0) {
             croak("->new takes named parameters or a hash.");
         }
 
-        /* allocate a VT_SWITCHES instance */
-        New(0, switches, 1, VT_SWITCHES);
-
-        _init(switches);
-
         for (i = 1; i < items; i += 2) {
             if (!SvPOK( ST(i) )) croak("Invalid constructor parameter");
 
-            printf("i: %d\n", i);
             _check_rows_param( ST(i), ST(i+1), switches );
             _check_cols_param( ST(i), ST(i+1), &switches );
         }
     }
 
     /* $iv_addr = 0xDEADBEEF in an IV */
-    iv_addr = sv_2mortal( newSViv( PTR2IV(switches) ) );
+    iv_addr = newSViv( PTR2IV(switches) );
 
     /* my $self = \$iv_addr */
-    self = newRV(iv_addr);
+    self = newRV_noinc(iv_addr);
 
     /* bless($iv_addr, $class) */
     sv_bless(self, gv_stashsv(class, 0));
 
-
-  mXPUSHs(self);
+    /* return $self */
+    mXPUSHs(self);
+    /*mXPUSHs(sv_2mortal(newSViv(42)));*/
 
 SV*
 process(self, buf)
@@ -274,3 +271,13 @@ process(self, buf)
     RETVAL = _process(self, buf);
   OUTPUT:
     RETVAL
+
+void
+DESTROY(self)
+    SV *self
+  PREINIT:
+    VT_SWITCHES *switches;
+  CODE:
+    _GET_SWITCHES(switches, self);
+    Safefree(switches);
+    printf("Destroyed! A good thing! :)\n");
