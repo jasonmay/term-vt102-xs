@@ -139,11 +139,11 @@ SV* _process_ctl(SV* self, char **buf)
         return;
 
     if (c == CHAR_CTL_BS)
-        if(switches->x > 1) --switches->x;
+        if(switches->x > 0) --switches->x;
 
     if (c == CHAR_CTL_LF) {
-        switches->x = 1;
-        if (switches->y < switches->num_rows) switches->y++;
+        switches->x = 0;
+        if (switches->y < switches->num_rows-1) switches->y++;
     }
 }
 
@@ -153,16 +153,14 @@ STATIC I32 _process_text(SV* self, char **buf)
     VT_CELL *cell;
     _GET_SWITCHES(switches, self);
 
-    cell = &switches->rows[switches->y-1].cells[switches->x-1];
+    cell = &switches->rows[switches->y].cells[switches->x];
 
     cell->value = **buf;
     cell->used  = 1;
 
-    /*printf("x=%d y=%d value='%c'\n", switches->x, switches->y, **buf);*/
-
     switches->x++;
-    if (switches->x > switches->num_rows) {
-        switches->x = 1;
+    if (switches->x > switches->num_rows-1) {
+        switches->x = 0;
     }
 
     (*buf)++;
@@ -238,6 +236,15 @@ void _check_cols_param(SV *sv_param, SV *sv_value, VT_SWITCHES **switches) {
     };
 }
 
+void _inc_y(VT_SWITCHES *switches) {
+    /* TODO: if y > num_rows, move everything up, etc */
+    switches->y++;
+
+    if (switches->y >= switches->num_rows) {
+
+    }
+}
+
 MODULE = Term::VT102::XS        PACKAGE = Term::VT102::XS
 
 PROTOTYPES: DISABLE
@@ -256,7 +263,7 @@ new(class, ...)
 
     switches->num_cols        = DEFAULT_COLS;
     switches->num_rows        = DEFAULT_ROWS;
-    switches->x = switches->y = 1;
+    switches->x = switches->y = 0;
 
     if (items > 1) {
         if (items % 2 == 0) {
@@ -316,7 +323,9 @@ row_plaintext(self, sv_rownum)
     int          rownum;
     VT_CELL     *cell;
   CODE:
+
     _GET_SWITCHES(switches, self);
+
     if ( !SvIOK(sv_rownum) )
         croak("row_plaintext takes an integer.");
 
@@ -330,16 +339,12 @@ row_plaintext(self, sv_rownum)
 
     for (i = 0; i < switches->num_cols; ++i) {
         cell = &switches->rows[rownum-1].cells[i];
-        /*printf("    x=%d y=%d value='%c'\n", i, rownum-1, cell->value);*/
 
         retbuf[i] = cell->value ? cell->value : ' ';
-        /*printf("%c:", retbuf[i]);*/
     }
 
     retbuf[switches->num_cols] = '\0';
-
     ret = newSVpv(retbuf, switches->num_cols);
-
     Safefree(retbuf);
 
     RETVAL = ret;
