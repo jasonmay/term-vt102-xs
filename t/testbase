@@ -3,12 +3,16 @@
 # Basic functions used by most of the test scripts.
 #
 
+use Test::More;
+
 sub run_tests {
 	my ($testref) = @_;
 	my @tests = @$testref;
 	my ($nt, $i);
 
 	$nt = scalar @tests;		# number of sub-tests
+
+    plan tests => $nt;
 
 	foreach $i (1 .. $nt) {
 		my $testref = shift @tests;
@@ -20,16 +24,13 @@ sub run_tests {
 		if (ref $cols) {
 			($settings, $cols, $rows, $text, @output) = @$testref;
 		}
-
-		print "$i..$nt\n";
 	
 		my $vt = Term::VT102::XS->new ('cols' => $cols, 'rows' => $rows);
 	
 		($ncols, $nrows) = $vt->size ();
 	
 		if (($cols != $ncols) or ($rows != $nrows)) {
-			print "not ok $i\n";
-			warn "returned size: $ncols x $nrows, wanted $cols x $rows\n";
+			fail "returned size: $ncols x $nrows, wanted $cols x $rows\n";
 			next;
 		}
 
@@ -38,8 +39,8 @@ sub run_tests {
 				if (
 				  !defined $vt->option_set ($_,$settings->{$_})
 				) {
-					print "not ok $i\n";
-					warn "failed to set option: $_";
+					fail "failed to set option: $_";
+                    next;
 				}
 			}
 		}
@@ -63,7 +64,7 @@ sub run_tests {
 			$row ++;
 			if ($vt->row_text ($row) ne $line) {
 				$passed = 0;
-				print STDERR "test $i: row $row incorrect, got '" .
+				diag "test $i: row $row incorrect, got '" .
 				  show_text ($vt->row_text ($row)) . "', expected '" .
 				  show_text ($line) . "'\n";
 				next;
@@ -73,7 +74,7 @@ sub run_tests {
 			for ($col = 0; $col < $cols; $col ++) {
 				if (substr ($aline, 2 * $col, 2) ne substr ($galine, 2 * $col, 2)) {
 					$passed = 0;
-					print STDERR "test $i: row $row col " . ($col + 1) .
+					diag "test $i: row $row col " . ($col + 1) .
 					  " attributes incorrect, got '" .
 					  show_attr ($vt, substr ($galine, 2 * $col, 2)) .
 					  "', expected '" .
@@ -84,13 +85,12 @@ sub run_tests {
 		}
 	
 		if ($passed == 0) {
-			print "not ok $i\n";
-			print STDERR "screen contents ($cols x $rows):\n";
+			fail "screen contents ($cols x $rows):\n";
 			for (my $dumprow = 1; $dumprow <= $rows; $dumprow++) {
 				print STDERR "[" . $vt->row_plaintext ($dumprow) . "]\n";
 			}
 		} else {
-			print "ok $i\n";
+            pass;
 		}
 	}
 }

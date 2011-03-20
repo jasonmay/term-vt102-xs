@@ -7,6 +7,7 @@
 #
 
 require Term::VT102::XS;
+use Test::More;
 
 @testsizes = (
   1, 1,
@@ -17,9 +18,9 @@ require Term::VT102::XS;
 );
 
 $nt = ($#testsizes + 1) / 2;		# number of sub-tests
+plan tests => $nt;
 
-foreach $i (1 .. $nt) {
-	print "$i..$nt\n";
+foreach my $i (1 .. $nt) {
 
 	$cols = shift @testsizes;
 	$rows = shift @testsizes;
@@ -31,12 +32,7 @@ foreach $i (1 .. $nt) {
 	$cols = 80 if ($cols < 1);
 	$rows = 24 if ($rows < 1);
 
-	if (($cols != $ncols) or ($rows != $nrows)) {
-		print "not ok $i\n";
-		warn "returned size: $ncols x $nrows, wanted $cols x $rows\n";
-	} else {
-		print "ok $i\n";
-	}
+	ok (($cols == $ncols && $rows == $nrows),
+		"returned size: $ncols x $nrows, wanted $cols x $rows\n");
 }
 
-# EOF
