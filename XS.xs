@@ -160,10 +160,6 @@ SV* _process_ctl(SV* self, char **buf)
     _GET_SWITCHES(switches, self);
     VT_CELL *current_cell;
 
-    /* back to current because these are all zero-width */
-    if(switches->x > 0) --switches->x;
-
-    current_cell = _current_cell(switches);
 
     char c = **buf;
     (*buf)++;
@@ -173,12 +169,12 @@ SV* _process_ctl(SV* self, char **buf)
 
     if (c == CHAR_CTL_BS) {
 
+        if(switches->x > 0) --switches->x;
+        current_cell = _current_cell(switches);
         current_cell->attr  = 0;
         current_cell->used  = 0;
         current_cell->value = '\0';
 
-        /* dec. because we are backspacing */
-        if(switches->x > 0) --switches->x;
     }
 
     if (c == CHAR_CTL_LF) {
