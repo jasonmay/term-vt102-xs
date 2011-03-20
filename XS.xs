@@ -40,7 +40,7 @@
 #define CHAR_CTL_DEL  127
 #define CHAR_CTL_CSI  255
 
-#define _IS_CTL(C) ((C) >= 0 && (C) < 32)
+#define _IS_CTL(C) ((C) >= 0 && (C) < 0x1F)
 
 #define CHAR_ESC_RIS     "c"
 #define CHAR_ESC_IND     "D"
