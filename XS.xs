@@ -461,10 +461,46 @@ attr_unpack(sv, ...)
     mPUSHs( newSViv( (buf[1] >> 4) & 1 ) );
     mPUSHs( newSViv( (buf[1] >> 5) & 1 ) );
 
-I16 attr_pack(sv, ...)
+SV *attr_pack(sv, ...)
     SV *sv
+  PREINIT:
+    SV *ret;
+    int i, attrs[8], offset, args;
+    I16 attr_int;
+    char attr_bits[2];
   CODE:
-    /* TODO */
+    offset = 0;
+    if ( SvROK(sv) ) {
+        offset = 1;
+    }
+
+    args = items - offset;
+
+    if ( args != 8 ) {
+        croak("Usage: attr_pack(fg, bg, bo, fa, st, ul, bl, rv)");
+    }
+
+    for (i = 0; i < args; ++i) {
+        SV *arg = ST(i + offset);
+        if ( !SvIOK(arg) )
+            croak("attr_pack: all flags must be integers");
+
+        attrs[i] = SvIV(arg);
+    }
+
+    attr_bits[0] = (attrs[0] & 7)
+            | ((attrs[1] & 7) << 4);
+
+    attr_bits[1] = ( attrs[2]      )
+             | ( attrs[3] << 1 )
+             | ( attrs[4] << 2 )
+             | ( attrs[5] << 3 )
+             | ( attrs[6] << 4 )
+             | ( attrs[7] << 5 );
+
+    RETVAL = newSVpv(attr_bits, 2);
+  OUTPUT:
+    RETVAL
 
 void option_set(self, option, value)
     SV *self
