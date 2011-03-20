@@ -436,6 +436,26 @@ size(self)
     mPUSHs( newSViv(switches->num_cols) );
     mPUSHs( newSViv(switches->num_rows) );
 
+SV*
+attr_unpack(self, sv_buf)
+    SV *self
+    SV *sv_buf
+  PPCODE:
+
+    char *buf = SvPV_nolen(sv_buf);
+
+    SV *foo;
+
+    EXTEND(SP, 8);
+
+    PUSHs( newSViv(  buf[0] & 7      ) );
+    PUSHs( newSViv( (buf[0] >> 4) & 7) );
+    PUSHs( newSViv(  buf[1]       & 1) );
+    PUSHs( newSViv( (buf[1] >> 1) & 1) );
+    PUSHs( newSViv( (buf[1] >> 2) & 1) );
+    PUSHs( newSViv( (buf[1] >> 3) & 1) );
+    PUSHs( newSViv( (buf[1] >> 4) & 1) );
+    PUSHs( newSViv( (buf[1] >> 5) & 1) );
 
 void
 DESTROY(self)
