@@ -128,7 +128,7 @@ SV *_process_ctl(VT_SWITCHES *switches, char **buf)
             break;
 
         case CHAR_CTL_ESC:
-            /* are beloved \e[...# */
+            /* our beloved \e[...# */
             if (**buf == '[') {
                 ++(*buf);
             }
