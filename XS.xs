@@ -501,15 +501,15 @@ SV *attr_pack(sv, ...)
         attrs[i] = SvIV(arg);
     }
 
-    attr_bits[0] = (attrs[0] & 7)
-            | ((attrs[1] & 7) << 4);
+    attr_bits[0] =  (attrs[0] & 7)
+                 | ((attrs[1] & 7) << 4);
 
     attr_bits[1] = ( attrs[2]      )
-             | ( attrs[3] << 1 )
-             | ( attrs[4] << 2 )
-             | ( attrs[5] << 3 )
-             | ( attrs[6] << 4 )
-             | ( attrs[7] << 5 );
+                 | ( attrs[3] << 1 )
+                 | ( attrs[4] << 2 )
+                 | ( attrs[5] << 3 )
+                 | ( attrs[6] << 4 )
+                 | ( attrs[7] << 5 );
 
     RETVAL = newSVpv(attr_bits, 2);
   OUTPUT:
