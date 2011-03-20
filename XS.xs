@@ -71,6 +71,37 @@ char _is_csi_terminator(char c)
     }
 }
 
+int _has_semicolon(char *s)
+{
+    while (*s) {
+        if (*s == ';') return 1;
+        ++s;
+    }
+
+    return 0;
+}
+
+void _process_SGR(VT_SWITCHES *switches)
+{
+    char *buf = switches->seq_buf;
+
+    while (*buf) {
+        char next_char = *(buf + 1);
+
+        /* 30-37 */
+        if ( *buf == '3' && next_char >= '0' && next_char <= '7' ) {
+            if ( *(buf + 2) == ';' || *(buf + 2) == '\0' ) {
+                switches->attr.fg = next_char - '0';
+                buf += 2;
+            }
+        }
+
+        ++buf;
+    }
+
+
+}
+
 void _process_csi(VT_SWITCHES *switches, char **buf)
 {
     int i, terminated = 0;
@@ -79,15 +110,22 @@ void _process_csi(VT_SWITCHES *switches, char **buf)
     for (i = 0; i < 64; ++i) {
         c = *( (*buf) + i );
 
+        fprintf(stderr, "character: %c\n", c);
+
         if ( !c )
             break;
 
         if ( _is_csi_terminator(c) ) {
+            fprintf(stderr, "terminator: %c\n", c);
             switches->seq_buf[i] = '\0';
-            (*buf) += i;
+            (*buf) += i + 1;
             terminated = 1;
             switch (c) {
                 case CSI_SGR:
+                    _process_SGR(switches);
+                  /*  fprintf(stderr, "THE COLORS, DUKE! THE COLORS! %s\n",
+                        switches->seq_buf); */
+
                     break;
 
                 default:
@@ -116,7 +154,7 @@ void _process_ctl(VT_SWITCHES *switches, char **buf)
         case CHAR_CTL_BS:
             if ( switches->x > 0 ) --switches->x;
             current_cell = _current_cell(switches);
-            current_cell->attr  = 0;
+            /* _reset_attr ??? */
             current_cell->used  = 0;
             current_cell->value = '\0';
             break;
@@ -162,6 +200,7 @@ void _process_text(VT_SWITCHES *switches, char **buf)
 
     cell->value = **buf;
     cell->used  = 1;
+    Copy(&switches->attr, &cell->attr, 1, VT_ATTR);
 
     switches->x++;
     if ( switches->x > switches->num_cols-1 ) {
@@ -259,9 +298,21 @@ void _clear_row(VT_SWITCHES *switches, int row)
 
     for (x = 0; x < switches->num_cols; ++x) {
         s_row->cells[x].value = '\0';
-        s_row->cells[x].attr  = 0;
+        _reset_attr(&s_row->cells[x].attr);
         s_row->cells[x].used  = 0;
     }
+}
+
+void _reset_attr(VT_ATTR *attr)
+{
+
+    attr->fg = 7;
+
+    attr->bg = attr->bo =
+    attr->fa = attr->st =
+    attr->ul = attr->bl =
+    attr->rv = 0;
+
 }
 
 void _init(VT_SWITCHES *switches)
@@ -286,7 +337,7 @@ void _init(VT_SWITCHES *switches)
         for (x = 0; x < switches->num_cols; ++x) {
             cur_cell = &switches->rows[y].cells[x];
 
-            cur_cell->attr = 0;
+            _reset_attr(&cur_cell->attr);
             cur_cell->used = 0;
             cur_cell->value = '\0';
         }
@@ -324,6 +375,24 @@ SV* _row_text(VT_SWITCHES *switches, int rownum, int plain)
     Safefree(retbuf);
     return ret;
 }
+
+SV *_attr_pack(int fg, int bg, int bo, int fa, int st, int ul, int bl, int rv)
+{
+    char attr_bits[2];
+
+    attr_bits[0] = ((fg & 7)     ) /* parens unnecessary but I may have OCD */
+                 | ((bg & 7) << 4);
+
+    attr_bits[1] = ( bo      )
+                 | ( fa << 1 )
+                 | ( st << 2 )
+                 | ( ul << 3 )
+                 | ( bl << 4 )
+                 | ( rv << 5 );
+
+    return newSVpv(attr_bits, 2);
+}
+
 
 MODULE = Term::VT102::XS        PACKAGE = Term::VT102::XS
 
@@ -501,17 +570,14 @@ SV *attr_pack(sv, ...)
         attrs[i] = SvIV(arg);
     }
 
-    attr_bits[0] =  (attrs[0] & 7)
-                 | ((attrs[1] & 7) << 4);
-
-    attr_bits[1] = ( attrs[2]      )
-                 | ( attrs[3] << 1 )
-                 | ( attrs[4] << 2 )
-                 | ( attrs[5] << 3 )
-                 | ( attrs[6] << 4 )
-                 | ( attrs[7] << 5 );
-
-    RETVAL = newSVpv(attr_bits, 2);
+    RETVAL = _attr_pack(attrs[0],
+                        attrs[1],
+                        attrs[2],
+                        attrs[3],
+                        attrs[4],
+                        attrs[5],
+                        attrs[6],
+                        attrs[7]);
   OUTPUT:
     RETVAL
 

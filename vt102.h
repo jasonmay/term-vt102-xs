@@ -118,19 +118,30 @@
 #define COLOR_DARK  0
 #define COLOR_LIGHT 1
 
+#define _ISNUM(C) ( (C) >= '0' && (C) <= '9' )
 #define _GET_SWITCHES(V, O) V = INT2PTR(VT_SWITCHES*, SvIV(SvRV(O)))
 
+typedef struct _VT_ATTR {
+    int fg;
+    int bg;
+    int bo;
+    int fa;
+    int st;
+    int ul;
+    int bl;
+    int rv;
+} VT_ATTR;
+
 typedef struct _VT_OPTIONS {
-    I8 linewrap;
-    I8 lftocrlf;
-    I8 ignorexoff;
-    I16  attr;
+    I8      linewrap;
+    I8      lftocrlf;
+    I8      ignorexoff;
 } VT_OPTIONS;
 
 typedef struct _VT_CELL {
-    I16  attr;
-    char value;
-    I8   used;
+    VT_ATTR attr;
+    char    value;
+    I8      used;
 } VT_CELL;
 
 typedef struct _VT_ROW {
@@ -156,6 +167,8 @@ typedef struct _VT_SWITCHES {
 
     int *tabstops;
 
+    VT_ATTR attr;
+
 } VT_SWITCHES;
 
 /* prototypes */
@@ -169,6 +182,7 @@ void     _inc_y(VT_SWITCHES *);
 void     _check_rows_param(SV *, SV *, VT_SWITCHES *);
 void     _check_cols_param(SV *, SV *, VT_SWITCHES *);
 void     _clear_row(VT_SWITCHES *, int);
+void     _reset_attr(VT_ATTR *);
 void     _init(VT_SWITCHES *);
 SV      *_row_text(VT_SWITCHES *, int, int);
 
