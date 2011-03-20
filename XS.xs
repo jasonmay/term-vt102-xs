@@ -305,11 +305,12 @@ void _check_cols_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches) {
 
 void _clear_row(VT_SWITCHES *switches, int row) {
     int x;
+    VT_ROW *s_row = &switches->rows[row];
 
     for (x = 0; x < switches->num_cols; ++x) {
-        switches->rows[row].cells[x].value = '\0';
-        switches->rows[row].cells[x].attr  = 0;
-        switches->rows[row].cells[x].used  = 0;
+        s_row->cells[x].value = '\0';
+        s_row->cells[x].attr  = 0;
+        s_row->cells[x].used  = 0;
     }
 }
 
