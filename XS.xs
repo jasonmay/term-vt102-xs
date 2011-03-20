@@ -177,8 +177,13 @@ SV* _process_ctl(SV* self, char **buf)
 
     }
 
-    if (c == CHAR_CTL_LF) {
+    if (c == CHAR_CTL_CR) {
         switches->x = 0;
+        printf("After CR, we have %d\n", **buf);
+    }
+
+    if (c == CHAR_CTL_LF) {
+        printf("After LF, we have %d\n", **buf);
         _inc_y(switches);
     }
 }
@@ -205,6 +210,93 @@ STATIC I32 _process_text(SV* self, char **buf)
     return 0;
 }
 
+void _process(SV* self, SV* sv_in)
+{
+    char *buf = SvPV_nolen(sv_in);
+    STRLEN c;
+
+    while (*buf != '\0') {
+        if ( _IS_CTL( *buf ) ) {
+            _process_ctl(self, &buf);
+        }
+        else if ( *buf != 127) {
+            _process_text(self, &buf);
+        }
+        else {
+            ++buf;
+        }
+
+    }
+
+    return;
+}
+
+void _inc_y(VT_SWITCHES *switches) {
+    int row;
+    int end_index = switches->num_rows - 1;
+    VT_ROW *first_row;
+
+    switches->y++;
+
+    if (switches->y >= switches->num_rows) {
+        switches->y = end_index;
+
+        /* row 0 will be overwritten, store it 
+         * to use for the last row */
+        first_row = &switches->rows[0];
+
+        /* move every row pointer up one */
+        for (row = 0; row < end_index; ++row) {
+            switches->rows[row] = switches->rows[row + 1];
+        }
+        switches->rows[end_index] = *first_row;
+    }
+}
+
+void _check_rows_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches) {
+    char *param = SvPV_nolen( sv_param );
+    int value;
+
+    if ( strEQ(param, "rows") ) {
+        if ( SvIOK( sv_value ) ) {
+            value = SvIV(sv_value);
+
+            if (value > 0)
+                switches->num_rows = value;
+        }
+        else {
+            croak("rows => INTEGER, ...");
+        }
+    };
+}
+
+void _check_cols_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches) {
+    char *param = SvPV_nolen( sv_param );
+    int value;
+
+    if ( strEQ(param, "cols") ) {
+        if ( SvIOK( sv_value ) ) {
+            value = SvIV(sv_value);
+
+            if (value > 0)
+                switches->num_cols = value;
+        }
+        else {
+            croak("cols => INTEGER, ...");
+        }
+    };
+}
+
+void _clear_row(VT_SWITCHES *switches, int row) {
+    int x;
+
+    for (x = 0; x < switches->num_cols; ++x) {
+        switches->rows[row].cells[x].value = '\0';
+        switches->rows[row].cells[x].attr  = 0;
+        switches->rows[row].cells[x].used  = 0;
+    }
+}
+
 void _init(VT_SWITCHES *switches)
 {
     int x, y;
@@ -229,85 +321,6 @@ void _init(VT_SWITCHES *switches)
     }
 
     switches->xon = 1;
-}
-
-void _process(SV* self, SV* sv_in)
-{
-    char *buf = SvPV_nolen(sv_in);
-    STRLEN c;
-
-    while (*buf != '\0') {
-        if ( _IS_CTL( *buf ) ) {
-            _process_ctl(self, &buf);
-        }
-        else if ( *buf != 127) {
-            _process_text(self, &buf);
-        }
-        else {
-            ++buf;
-        }
-
-    }
-
-    return;
-}
-
-void _check_rows_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches) {
-    char *param = SvPV_nolen( sv_param );
-
-    if ( strEQ(param, "rows") ) {
-        if ( SvIOK( sv_value ) ) {
-            switches->num_rows = SvIV(sv_value);
-        }
-        else {
-            croak("rows => INTEGER, ...");
-        }
-    };
-}
-
-void _check_cols_param(SV *sv_param, SV *sv_value, VT_SWITCHES **switches) {
-    char *param = SvPV_nolen( sv_param );
-
-    if ( strEQ(param, "cols") ) {
-        if ( SvIOK( sv_value ) ) {
-            (*switches)->num_cols = SvIV(sv_value);
-        }
-        else {
-            croak("cols => INTEGER, ...");
-        }
-    };
-}
-
-void _clear_row(VT_SWITCHES *switches, int row) {
-    int x;
-
-    for (x = 0; x < switches->num_cols; ++x) {
-        switches->rows[row].cells[x].value = '\0';
-        switches->rows[row].cells[x].attr  = 0;
-        switches->rows[row].cells[x].used  = 0;
-    }
-}
-
-void _inc_y(VT_SWITCHES *switches) {
-    int row;
-    int end_index = switches->num_rows - 1;
-    VT_ROW *first_row;
-
-    switches->y++;
-
-    if (switches->y >= switches->num_rows) {
-        switches->y = end_index;
-
-        /* row 0 will be overwritten, store it 
-         * to use for the last row */
-        first_row = &switches->rows[0];
-
-        /* move every row pointer up one */
-        for (row = 0; row < end_index; ++row) {
-            switches->rows[row] = switches->rows[row + 1];
-        }
-        switches->rows[end_index] = *first_row;
-    }
 }
 
 MODULE = Term::VT102::XS        PACKAGE = Term::VT102::XS
@@ -339,7 +352,7 @@ new(class, ...)
             if (!SvPOK( ST(i) )) croak("Invalid constructor parameter");
 
             _check_rows_param( ST(i), ST(i+1), switches );
-            _check_cols_param( ST(i), ST(i+1), &switches );
+            _check_cols_param( ST(i), ST(i+1), switches );
         }
     }
 
