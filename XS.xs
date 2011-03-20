@@ -175,13 +175,14 @@ typedef struct _VT_SWITCHES {
 
 /* prototypes */
 VT_CELL *_current_cell(VT_SWITCHES *);
-SV* _process_ctl(SV*, char **);
-void _inc_y(VT_SWITCHES *);
+SV*     _process_ctl(VT_SWITCHES *, char **);
+void    _inc_y(VT_SWITCHES *);
 
 
 /* functions */
 
-VT_CELL *_current_cell(VT_SWITCHES *switches) {
+VT_CELL *_current_cell(VT_SWITCHES *switches)
+{
     int x = switches->x,
         y = switches->y;
 
@@ -194,6 +195,9 @@ SV* _process_ctl(SV* self, char **buf)
     _GET_SWITCHES(switches, self);
     VT_CELL *current_cell;
 
+SV *_process_ctl(VT_SWITCHES *switches, char **buf)
+{
+    VT_CELL *current_cell;
 
     char c = **buf;
     (*buf)++;
@@ -230,18 +234,21 @@ SV* _process_ctl(SV* self, char **buf)
             }
             break;
 
+        case CHAR_CTL_ESC:
+            /* are beloved \e[...# */
+            if (**buf == '[') {
+                ++(*buf);
+            }
+            break;
         default:
             printf("Dunno, buddy!\n");
     }
 
 }
 
-STATIC I32 _process_text(SV* self, char **buf)
+STATIC I32 _process_text(VT_SWITCHES *switches, char **buf)
 {
-    VT_SWITCHES *switches;
     VT_CELL     *cell;
-
-    _GET_SWITCHES(switches, self);
 
     cell = &switches->rows[switches->y].cells[switches->x];
 
@@ -258,17 +265,17 @@ STATIC I32 _process_text(SV* self, char **buf)
     return 0;
 }
 
-void _process(SV* self, SV* sv_in)
+void _process(VT_SWITCHES *switches, SV *sv_in)
 {
     char *buf = SvPV_nolen(sv_in);
     STRLEN c;
 
     while (*buf != '\0') {
         if ( _IS_CTL( *buf ) ) {
-            _process_ctl(self, &buf);
+            _process_ctl(switches, &buf);
         }
         else if ( *buf != 127) {
-            _process_text(self, &buf);
+            _process_text(switches, &buf);
         }
         else {
             ++buf;
@@ -431,11 +438,15 @@ void
 process(self, buf)
     SV *self
     SV *buf
+  PREINIT:
+    VT_SWITCHES *switches;
   CODE:
     if (!SvPOK(buf))
         croak("Argument must be a string");
 
-    _process(self, buf);
+    _GET_SWITCHES(switches, self);
+
+    _process(switches, buf);
 
 SV*
 row_plaintext(self, sv_rownum)
