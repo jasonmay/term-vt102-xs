@@ -167,25 +167,24 @@ SV* _process_ctl(SV* self, char **buf)
     if ( switches->xon == 0 )
         return;
 
-    if (c == CHAR_CTL_BS) {
+    switch (c) {
+        case CHAR_CTL_BS:
+            if(switches->x > 0) --switches->x;
+            current_cell = _current_cell(switches);
+            current_cell->attr  = 0;
+            current_cell->used  = 0;
+            current_cell->value = '\0';
+            break;
 
-        if(switches->x > 0) --switches->x;
-        current_cell = _current_cell(switches);
-        current_cell->attr  = 0;
-        current_cell->used  = 0;
-        current_cell->value = '\0';
+        case CHAR_CTL_CR:
+            switches->x = 0;
+            break;
 
+        case CHAR_CTL_LF:
+            _inc_y(switches);
+            break;
     }
 
-    if (c == CHAR_CTL_CR) {
-        switches->x = 0;
-        /*printf("After CR, we have %d\n", **buf);*/
-    }
-
-    if (c == CHAR_CTL_LF) {
-        /*printf("After LF, we have %d\n", **buf);*/
-        _inc_y(switches);
-    }
 }
 
 STATIC I32 _process_text(SV* self, char **buf)
