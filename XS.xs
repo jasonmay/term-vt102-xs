@@ -137,6 +137,8 @@ typedef struct _VT_SWITCHES {
     I8 in_esc;
     I8 xon;
 
+    int *tabstops;
+
 } VT_SWITCHES;
 
 /* prototypes */
@@ -183,6 +185,21 @@ SV* _process_ctl(SV* self, char **buf)
         case CHAR_CTL_LF:
             _inc_y(switches);
             break;
+
+        case CHAR_CTL_HT:
+            if (switches->x < switches->num_cols-1)
+                ++switches->x;
+
+            while (switches->x < switches->num_cols-1) {
+                if (switches->tabstops[switches->x])
+                    break;
+
+                ++switches->x;
+            }
+            break;
+
+        default:
+            printf("Dunno, buddy!\n");
     }
 
 }
@@ -302,7 +319,13 @@ void _init(VT_SWITCHES *switches)
     VT_CELL *cur_cell;
 
     /* allocate rows */
-    New(0, switches->rows, switches->num_rows, VT_ROW);
+    New(0, switches->rows,     switches->num_rows, VT_ROW);
+    New(0, switches->tabstops, switches->num_cols, int);
+
+    /* establish tabstops 1000000010000000... */
+    for (x = 0; x < switches->num_cols; ++x) {
+        switches->tabstops[x] = ( x % 8 == 0);
+    }
 
     for (y = 0; y < switches->num_rows; ++y) {
 
@@ -498,4 +521,5 @@ DESTROY(self)
         Safefree(switches->rows[i].cells);
     }
     Safefree(switches->rows);
+    Safefree(switches->tabstops);
     Safefree(switches);
