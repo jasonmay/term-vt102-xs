@@ -30,11 +30,63 @@ VT_CELL *_current_cell(VT_SWITCHES *switches)
     return &switches->rows[y].cells[x];
 }
 
-SV* _process_ctl(SV* self, char **buf)
+char _is_csi_terminator(char c)
 {
-    VT_SWITCHES* switches;
-    _GET_SWITCHES(switches, self);
-    VT_CELL *current_cell;
+    switch (c) {
+        case CSI_IGN:
+        case CSI_ICH:
+        case CSI_CUU:
+        case CSI_CUD:
+        case CSI_CUF:
+        case CSI_CUB:
+        case CSI_CNL:
+        case CSI_CPL:
+        case CSI_CHA:
+        case CSI_CUP:
+        case CSI_ED:
+        case CSI_EL:
+        case CSI_IL:
+        case CSI_DL:
+        case CSI_DCH:
+        case CSI_ECH:
+        case CSI_HPR:
+        case CSI_DA:
+        case CSI_VPA:
+        case CSI_VPR:
+        case CSI_HVP:
+        case CSI_TBC:
+        case CSI_SM:
+        case CSI_RM:
+        case CSI_SGR:
+        case CSI_DSR:
+        case CSI_DECLL:
+        case CSI_DECSTBM:
+        case CSI_CUPSV:
+        case CSI_CUPRS:
+        case CSI_HPA:
+        return c;
+
+        default:
+        return '\0';
+    }
+}
+
+SV *_process_csi(VT_SWITCHES *switches, char **buf)
+{
+    int i, terminated = 0;
+    char c;
+
+    for (i = 0; i < 64; ++i) {
+        c = *( (*buf) + i );
+        if (!c)
+            break;
+
+        if ( _is_csi_terminator(c) ) {
+            terminated = 1;
+            break;
+        }
+    }
+}
 
 SV *_process_ctl(VT_SWITCHES *switches, char **buf)
 {
@@ -205,7 +257,7 @@ void _init(VT_SWITCHES *switches)
 
     /* establish tabstops 1000000010000000... */
     for (x = 0; x < switches->num_cols; ++x) {
-        switches->tabstops[x] = ( x % 8 == 0);
+        switches->tabstops[x] = (x % 8 == 0);
     }
 
     for (y = 0; y < switches->num_rows; ++y) {
