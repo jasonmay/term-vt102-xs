@@ -201,7 +201,7 @@ STATIC I32 _process_text(SV* self, char **buf)
     cell->used  = 1;
 
     switches->x++;
-    if (switches->x > switches->num_rows-1) {
+    if (switches->x > switches->num_cols-1) {
         switches->x = 0;
     }
 
