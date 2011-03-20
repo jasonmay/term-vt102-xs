@@ -335,7 +335,6 @@ void _init(VT_SWITCHES *switches)
         for (x = 0; x < switches->num_cols; ++x) {
             cur_cell = &switches->rows[y].cells[x];
 
-            if (0)printf("switches->x: %d\n", switches->x);
             cur_cell->attr = 0;
             cur_cell->used = 0;
             cur_cell->value = '\0';
