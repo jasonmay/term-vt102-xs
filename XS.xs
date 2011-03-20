@@ -78,13 +78,26 @@ void _process_csi(VT_SWITCHES *switches, char **buf)
 
     for (i = 0; i < 64; ++i) {
         c = *( (*buf) + i );
-        if (!c)
+
+        if ( !c )
             break;
 
         if ( _is_csi_terminator(c) ) {
+            switches->seq_buf[i] = '\0';
+            (*buf) += i;
             terminated = 1;
-            printf("OMG THE TERMINATOR: %c\n", c);
+            switch (c) {
+                case CSI_SGR:
+                    break;
+
+                default:
+                    break;
+            }
+
             break;
+        }
+        else {
+            switches->seq_buf[i] = c;
         }
     }
 }
