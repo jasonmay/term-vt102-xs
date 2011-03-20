@@ -160,7 +160,16 @@ typedef struct _VT_SWITCHES {
 
 /* prototypes */
 VT_CELL *_current_cell(VT_SWITCHES *);
-SV*     _process_ctl(VT_SWITCHES *, char **);
-void    _inc_y(VT_SWITCHES *);
+char     _is_csi_terminator(char);
+SV      *_process_csi(VT_SWITCHES *, char **);
+SV      *_process_ctl(VT_SWITCHES *, char **);
+void     _process_text(VT_SWITCHES *, char **);
+void     _process(VT_SWITCHES *, SV *);
+void     _inc_y(VT_SWITCHES *);
+void     _check_rows_param(SV *, SV *, VT_SWITCHES *);
+void     _check_cols_param(SV *, SV *, VT_SWITCHES *);
+void     _clear_row(VT_SWITCHES *, int);
+void     _init(VT_SWITCHES *);
+SV      *_row_text(VT_SWITCHES *, int, int);
 
 #endif /* end of include guard: _VT102_H_ */

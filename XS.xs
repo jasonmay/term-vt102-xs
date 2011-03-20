@@ -139,7 +139,7 @@ SV *_process_ctl(VT_SWITCHES *switches, char **buf)
 
 }
 
-STATIC I32 _process_text(VT_SWITCHES *switches, char **buf)
+void _process_text(VT_SWITCHES *switches, char **buf)
 {
     VT_CELL     *cell;
 
@@ -155,7 +155,7 @@ STATIC I32 _process_text(VT_SWITCHES *switches, char **buf)
 
     (*buf)++;
 
-    return 0;
+    return;
 }
 
 void _process(VT_SWITCHES *switches, SV *sv_in)
@@ -201,7 +201,8 @@ void _inc_y(VT_SWITCHES *switches) {
     }
 }
 
-void _check_rows_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches) {
+void _check_rows_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches)
+{
     char *param = SvPV_nolen( sv_param );
     int value;
 
@@ -218,7 +219,8 @@ void _check_rows_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches) {
     };
 }
 
-void _check_cols_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches) {
+void _check_cols_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches)
+{
     char *param = SvPV_nolen( sv_param );
     int value;
 
@@ -235,7 +237,8 @@ void _check_cols_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches) {
     };
 }
 
-void _clear_row(VT_SWITCHES *switches, int row) {
+void _clear_row(VT_SWITCHES *switches, int row)
+{
     int x;
     VT_ROW *s_row = &switches->rows[row];
 
