@@ -179,11 +179,11 @@ SV* _process_ctl(SV* self, char **buf)
 
     if (c == CHAR_CTL_CR) {
         switches->x = 0;
-        printf("After CR, we have %d\n", **buf);
+        /*printf("After CR, we have %d\n", **buf);*/
     }
 
     if (c == CHAR_CTL_LF) {
-        printf("After LF, we have %d\n", **buf);
+        /*printf("After LF, we have %d\n", **buf);*/
         _inc_y(switches);
     }
 }
