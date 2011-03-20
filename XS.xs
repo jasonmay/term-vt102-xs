@@ -110,13 +110,10 @@ void _process_csi(VT_SWITCHES *switches, char **buf)
     for (i = 0; i < 64; ++i) {
         c = *( (*buf) + i );
 
-        fprintf(stderr, "character: %c\n", c);
-
         if ( !c )
             break;
 
         if ( _is_csi_terminator(c) ) {
-            fprintf(stderr, "terminator: %c\n", c);
             switches->seq_buf[i] = '\0';
             (*buf) += i + 1;
             terminated = 1;
@@ -215,7 +212,6 @@ void _process_text(VT_SWITCHES *switches, char **buf)
 void _process(VT_SWITCHES *switches, SV *sv_in)
 {
     char *buf = SvPV_nolen(sv_in);
-    STRLEN c;
 
     while (*buf != '\0') {
         if ( _IS_CTL( *buf ) ) {
@@ -315,6 +311,31 @@ void _reset_attr(VT_ATTR *attr)
 
 }
 
+SV *_row_attr(VT_SWITCHES *switches, int row, int startcol, int endcol)
+{
+    int len = (endcol - startcol) * 2;
+    int col;
+    char *buf;
+
+    SV *ret;
+
+    New(0, buf, len, char);
+
+    for (col = startcol; col <= endcol; ++col) {
+        int idx = (col - startcol) * 2;
+        VT_ATTR *attr =
+            &switches->rows[row].cells[col].attr;
+
+        /* this may be horrible but I think this is awesome */
+        Copy(buf + idx, SvPV_nolen(_vt_attr_pack(*attr)), 2, char);
+    }
+
+    ret = newSVpv(buf, len);
+    Safefree(buf);
+
+    return ret;
+}
+
 void _init(VT_SWITCHES *switches)
 {
     int x, y;
@@ -389,6 +410,23 @@ SV *_attr_pack(int fg, int bg, int bo, int fa, int st, int ul, int bl, int rv)
                  | ( ul << 3 )
                  | ( bl << 4 )
                  | ( rv << 5 );
+
+    return newSVpv(attr_bits, 2);
+}
+
+SV *_vt_attr_pack(VT_ATTR attr)
+{
+    char attr_bits[2];
+
+    attr_bits[0] = ((attr.fg & 7)     )
+                 | ((attr.bg & 7) << 4);
+
+    attr_bits[1] = ( attr.bo      )
+                 | ( attr.fa << 1 )
+                 | ( attr.st << 2 )
+                 | ( attr.ul << 3 )
+                 | ( attr.bl << 4 )
+                 | ( attr.rv << 5 );
 
     return newSVpv(attr_bits, 2);
 }
@@ -580,6 +618,48 @@ SV *attr_pack(sv, ...)
                         attrs[7]);
   OUTPUT:
     RETVAL
+
+SV*
+row_attr(self, row, ...)
+    SV *self
+    SV *row
+  PREINIT:
+    SV *ret;
+    int error, startcol, endcol;
+    VT_SWITCHES *switches;
+  CODE:
+
+
+    error = 0;
+    if ( !SvIOK(row) )
+        error = 1;
+
+    if ( items != 2 && items != 4 ) {
+        error = 1;
+    }
+
+    if ( items == 4 ) {
+
+        if ( !SvIOK( ST(2) ) || !SvIOK( ST(3) ) )
+            croak("2");error = 1;
+
+        startcol = SvIV( ST(2) );
+        endcol   = SvIV( ST(2) );
+    }
+    else {
+        _GET_SWITCHES(switches, self);
+        startcol = endcol = switches->x;
+    }
+
+    if ( error )
+        croak("Usage: row_attr(row, [startcol], [endcol])");
+
+    ret = _row_attr(switches, SvIV(row), startcol, endcol);
+
+    RETVAL =  ret;
+  OUTPUT:
+    RETVAL
+
 
 void option_set(self, option, value)
     SV *self

@@ -183,7 +183,10 @@ void     _check_rows_param(SV *, SV *, VT_SWITCHES *);
 void     _check_cols_param(SV *, SV *, VT_SWITCHES *);
 void     _clear_row(VT_SWITCHES *, int);
 void     _reset_attr(VT_ATTR *);
+SV      *_row_attr(VT_SWITCHES *, int, int, int);
 void     _init(VT_SWITCHES *);
 SV      *_row_text(VT_SWITCHES *, int, int);
+SV      *_attr_pack(int, int, int, int, int, int, int, int);
+SV      *_vt_attr_pack(VT_ATTR);
 
 #endif /* end of include guard: _VT102_H_ */
