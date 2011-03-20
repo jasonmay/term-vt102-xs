@@ -277,6 +277,36 @@ void _init(VT_SWITCHES *switches)
     switches->xon = 1;
 }
 
+SV* _row_text(VT_SWITCHES *switches, int rownum, int plain)
+{
+    SV          *ret;
+    char        *retbuf;
+    int          i, len;
+
+    VT_CELL     *cell;
+
+    len = switches->num_cols;
+    New(0, retbuf, len, char);
+
+    for (i = 0; i < len; ++i) {
+        cell = &switches->rows[rownum-1].cells[i];
+
+        /*printf("Text: %d, x=%d y=%d\n",
+            retbuf[i], i, rownum-1);*/
+
+        if (plain) {
+            retbuf[i] = cell->used ? cell->value : ' ';
+        }
+        else {
+            retbuf[i] = cell->value;
+        }
+    }
+
+    ret = newSVpv(retbuf, len);
+    Safefree(retbuf);
+    return ret;
+}
+
 MODULE = Term::VT102::XS        PACKAGE = Term::VT102::XS
 
 PROTOTYPES: DISABLE
@@ -347,13 +377,8 @@ row_plaintext(self, sv_rownum)
     SV *sv_rownum
   PREINIT:
     VT_SWITCHES *switches;
-    SV          *ret;
-    char        *retbuf;
-    int          i;
     int          rownum;
-    VT_CELL     *cell;
   CODE:
-
     _GET_SWITCHES(switches, self);
 
     if ( !SvIOK(sv_rownum) )
@@ -365,22 +390,7 @@ row_plaintext(self, sv_rownum)
         croak("row_plaintext: Argument out of range!");
     }
 
-    New(0, retbuf, switches->num_cols + 1, char);
-
-    for (i = 0; i < switches->num_cols; ++i) {
-        cell = &switches->rows[rownum-1].cells[i];
-
-        /*printf("Text: %d, x=%d y=%d\n",
-            retbuf[i], i, rownum-1);*/
-
-        retbuf[i] = cell->used ? cell->value : ' ';
-    }
-
-    retbuf[switches->num_cols] = '\0';
-    ret = newSVpv(retbuf, switches->num_cols + 1);
-    Safefree(retbuf);
-
-    RETVAL = ret;
+    RETVAL = _row_text(switches, rownum, 0);
   OUTPUT:
     RETVAL
 
@@ -390,14 +400,8 @@ row_text(self, sv_rownum)
     SV *sv_rownum
   PREINIT:
     VT_SWITCHES *switches;
-    SV          *ret;
-    char        *retbuf;
-    int          i;
-    int          rownum;
-    int          len;
-    VT_CELL     *cell;
+    int rownum;
   CODE:
-
     _GET_SWITCHES(switches, self);
 
     if ( !SvIOK(sv_rownum) )
@@ -409,24 +413,7 @@ row_text(self, sv_rownum)
         croak("row_plaintext: Argument out of range!");
     }
 
-    len = switches->num_cols;
-
-    New(0, retbuf, len, char);
-
-    for (i = 0; i < switches->num_cols; ++i) {
-        cell = &switches->rows[rownum-1].cells[i];
-
-        /*printf("Text: %d, x=%d y=%d\n",
-            retbuf[i], i, rownum-1);*/
-
-        retbuf[i] = cell->value;
-    }
-
-    /* retbuf[switches->num_cols] = '\0'; */
-    ret = newSVpv(retbuf, len);
-    Safefree(retbuf);
-
-    RETVAL = ret;
+    RETVAL = _row_text(switches, rownum, 0);
   OUTPUT:
     RETVAL
 
