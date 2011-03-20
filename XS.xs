@@ -435,6 +435,7 @@ row_text(self, sv_rownum)
     char        *retbuf;
     int          i;
     int          rownum;
+    int          len;
     VT_CELL     *cell;
   CODE:
 
@@ -449,7 +450,9 @@ row_text(self, sv_rownum)
         croak("row_plaintext: Argument out of range!");
     }
 
-    New(0, retbuf, switches->num_cols + 1, char);
+    len = switches->num_cols;
+
+    New(0, retbuf, len, char);
 
     for (i = 0; i < switches->num_cols; ++i) {
         cell = &switches->rows[rownum-1].cells[i];
@@ -460,8 +463,8 @@ row_text(self, sv_rownum)
         retbuf[i] = cell->value;
     }
 
-    retbuf[switches->num_cols] = '\0';
-    ret = newSVpv(retbuf, switches->num_cols + 1);
+    /* retbuf[switches->num_cols] = '\0'; */
+    ret = newSVpv(retbuf, len);
     Safefree(retbuf);
 
     RETVAL = ret;
