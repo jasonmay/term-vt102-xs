@@ -10,3 +10,5 @@ $v->process("hello\njasong\bmay\n");
 warn $v->row_plaintext(1);
 warn $v->row_plaintext(2);
 
+warn (($v->size)[0]);
+warn (($v->size)[1]);

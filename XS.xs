@@ -413,6 +413,20 @@ row_plaintext(self, sv_rownum)
   OUTPUT:
     RETVAL
 
+SV*
+size(self)
+    SV *self
+  PREINIT:
+    VT_SWITCHES *switches;
+  PPCODE:
+
+    _GET_SWITCHES(switches, self);
+
+    EXTEND(SP, 2);
+
+    mPUSHs( newSViv(switches->num_cols) );
+    mPUSHs( newSViv(switches->num_rows) );
+
 
 void
 DESTROY(self)
