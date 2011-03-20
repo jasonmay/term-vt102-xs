@@ -161,8 +161,8 @@ typedef struct _VT_SWITCHES {
 /* prototypes */
 VT_CELL *_current_cell(VT_SWITCHES *);
 char     _is_csi_terminator(char);
-SV      *_process_csi(VT_SWITCHES *, char **);
-SV      *_process_ctl(VT_SWITCHES *, char **);
+void     _process_csi(VT_SWITCHES *, char **);
+void     _process_ctl(VT_SWITCHES *, char **);
 void     _process_text(VT_SWITCHES *, char **);
 void     _process(VT_SWITCHES *, SV *);
 void     _inc_y(VT_SWITCHES *);

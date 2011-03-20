@@ -71,7 +71,7 @@ char _is_csi_terminator(char c)
     }
 }
 
-SV *_process_csi(VT_SWITCHES *switches, char **buf)
+void _process_csi(VT_SWITCHES *switches, char **buf)
 {
     int i, terminated = 0;
     char c;
@@ -83,12 +83,13 @@ SV *_process_csi(VT_SWITCHES *switches, char **buf)
 
         if ( _is_csi_terminator(c) ) {
             terminated = 1;
+            printf("OMG THE TERMINATOR: %c\n", c);
             break;
         }
     }
 }
 
-SV *_process_ctl(VT_SWITCHES *switches, char **buf)
+void _process_ctl(VT_SWITCHES *switches, char **buf)
 {
     VT_CELL *current_cell;
 
@@ -131,6 +132,7 @@ SV *_process_ctl(VT_SWITCHES *switches, char **buf)
             /* our beloved \e[...# */
             if (**buf == '[') {
                 ++(*buf);
+                _process_csi(switches, buf);
             }
             break;
         default:
