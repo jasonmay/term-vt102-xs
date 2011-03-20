@@ -437,25 +437,41 @@ size(self)
     mPUSHs( newSViv(switches->num_rows) );
 
 SV*
-attr_unpack(self, sv_buf)
-    SV *self
-    SV *sv_buf
+attr_unpack(sv, ...)
+    SV *sv
+  PREINIT:
+    SV *sv_buf;
   PPCODE:
+
+    if (items > 1)
+        sv_buf = ST(1);
+    else
+        sv_buf = sv;
 
     char *buf = SvPV_nolen(sv_buf);
 
-    SV *foo;
-
     EXTEND(SP, 8);
 
-    PUSHs( newSViv(  buf[0] & 7      ) );
-    PUSHs( newSViv( (buf[0] >> 4) & 7) );
-    PUSHs( newSViv(  buf[1]       & 1) );
-    PUSHs( newSViv( (buf[1] >> 1) & 1) );
-    PUSHs( newSViv( (buf[1] >> 2) & 1) );
-    PUSHs( newSViv( (buf[1] >> 3) & 1) );
-    PUSHs( newSViv( (buf[1] >> 4) & 1) );
-    PUSHs( newSViv( (buf[1] >> 5) & 1) );
+    mPUSHs( newSViv(  buf[0]       & 7 ) );
+    mPUSHs( newSViv( (buf[0] >> 4) & 7 ) );
+    mPUSHs( newSViv(  buf[1]       & 1 ) );
+    mPUSHs( newSViv( (buf[1] >> 1) & 1 ) );
+    mPUSHs( newSViv( (buf[1] >> 2) & 1 ) );
+    mPUSHs( newSViv( (buf[1] >> 3) & 1 ) );
+    mPUSHs( newSViv( (buf[1] >> 4) & 1 ) );
+    mPUSHs( newSViv( (buf[1] >> 5) & 1 ) );
+
+I16 attr_pack(sv, ...)
+    SV *sv
+  CODE:
+    /* TODO */
+
+void option_set(self, option, value)
+    SV *self
+    SV *option
+    SV *value
+  CODE:
+    /* TODO */
 
 void
 DESTROY(self)
