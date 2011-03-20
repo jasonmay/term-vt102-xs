@@ -414,6 +414,49 @@ row_plaintext(self, sv_rownum)
     RETVAL
 
 SV*
+row_text(self, sv_rownum)
+    SV *self
+    SV *sv_rownum
+  PREINIT:
+    VT_SWITCHES *switches;
+    SV          *ret;
+    char        *retbuf;
+    int          i;
+    int          rownum;
+    VT_CELL     *cell;
+  CODE:
+
+    _GET_SWITCHES(switches, self);
+
+    if ( !SvIOK(sv_rownum) )
+        croak("row_plaintext: Please provide a row# for the argument.");
+
+    rownum = SvIV(sv_rownum);
+
+    if (rownum < 1 || rownum >= switches->num_cols) {
+        croak("row_plaintext: Argument out of range!");
+    }
+
+    New(0, retbuf, switches->num_cols + 1, char);
+
+    for (i = 0; i < switches->num_cols; ++i) {
+        cell = &switches->rows[rownum-1].cells[i];
+
+        /*printf("Text: %d, x=%d y=%d\n",
+            retbuf[i], i, rownum-1);*/
+
+        retbuf[i] = cell->value;
+    }
+
+    retbuf[switches->num_cols] = '\0';
+    ret = newSVpv(retbuf, switches->num_cols + 1);
+    Safefree(retbuf);
+
+    RETVAL = ret;
+  OUTPUT:
+    RETVAL
+
+SV*
 size(self)
     SV *self
   PREINIT:
