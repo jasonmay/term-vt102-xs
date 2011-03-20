@@ -101,7 +101,7 @@ void _process_ctl(VT_SWITCHES *switches, char **buf)
 
     switch (c) {
         case CHAR_CTL_BS:
-            if(switches->x > 0) --switches->x;
+            if ( switches->x > 0 ) --switches->x;
             current_cell = _current_cell(switches);
             current_cell->attr  = 0;
             current_cell->used  = 0;
@@ -117,11 +117,11 @@ void _process_ctl(VT_SWITCHES *switches, char **buf)
             break;
 
         case CHAR_CTL_HT:
-            if (switches->x < switches->num_cols-1)
+            if ( switches->x < switches->num_cols-1 )
                 ++switches->x;
 
             while (switches->x < switches->num_cols-1) {
-                if (switches->tabstops[switches->x])
+                if ( switches->tabstops[switches->x] )
                     break;
 
                 ++switches->x;
@@ -130,7 +130,7 @@ void _process_ctl(VT_SWITCHES *switches, char **buf)
 
         case CHAR_CTL_ESC:
             /* our beloved \e[...# */
-            if (**buf == '[') {
+            if ( **buf == '[' ) {
                 ++(*buf);
                 _process_csi(switches, buf);
             }
@@ -151,7 +151,7 @@ void _process_text(VT_SWITCHES *switches, char **buf)
     cell->used  = 1;
 
     switches->x++;
-    if (switches->x > switches->num_cols-1) {
+    if ( switches->x > switches->num_cols-1 ) {
         switches->x = 0;
     }
 
@@ -169,7 +169,7 @@ void _process(VT_SWITCHES *switches, SV *sv_in)
         if ( _IS_CTL( *buf ) ) {
             _process_ctl(switches, &buf);
         }
-        else if ( *buf != 127) {
+        else if ( *buf != 127 ) {
             _process_text(switches, &buf);
         }
         else {
@@ -188,7 +188,7 @@ void _inc_y(VT_SWITCHES *switches) {
 
     switches->y++;
 
-    if (switches->y >= switches->num_rows) {
+    if ( switches->y >= switches->num_rows ) {
         switches->y = end_index;
 
         /* row 0 will be overwritten, store it 
@@ -212,7 +212,7 @@ void _check_rows_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches)
         if ( SvIOK( sv_value ) ) {
             value = SvIV(sv_value);
 
-            if (value > 0)
+            if ( value > 0 )
                 switches->num_rows = value;
         }
         else {
@@ -230,7 +230,7 @@ void _check_cols_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches)
         if ( SvIOK( sv_value ) ) {
             value = SvIV(sv_value);
 
-            if (value > 0)
+            if ( value > 0 )
                 switches->num_cols = value;
         }
         else {
@@ -338,7 +338,7 @@ new(class, ...)
         }
 
         for (i = 1; i < items; i += 2) {
-            if (!SvPOK( ST(i) )) croak("Invalid constructor parameter");
+            if ( !SvPOK( ST(i) ) ) croak("Invalid constructor parameter");
 
             _check_rows_param( ST(i), ST(i+1), switches );
             _check_cols_param( ST(i), ST(i+1), switches );
