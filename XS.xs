@@ -522,6 +522,15 @@ void option_set(self, option, value)
   CODE:
     /* TODO */
 
+SV *option_read(self, option)
+    SV *self
+    SV *option
+  CODE:
+    /* TODO */
+    RETVAL = newSViv(0);
+  OUTPUT:
+    RETVAL
+
 void
 DESTROY(self)
     SV *self
