@@ -74,7 +74,7 @@ sub run_tests {
 			for ($col = 0; $col < $cols; $col ++) {
 				if (substr ($aline, 2 * $col, 2) ne substr ($galine, 2 * $col, 2)) {
 					$passed = 0;
-					diag "test $i: row $row col " . ($col + 1) .
+					warn "test $i: row $row col " . ($col + 1) .
 					  " attributes incorrect, got '" .
 					  show_attr ($vt, substr ($galine, 2 * $col, 2)) .
 					  "', expected '" .

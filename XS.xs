@@ -85,6 +85,10 @@ void _process_SGR(VT_SWITCHES *switches)
 {
     char *buf = switches->seq_buf;
 
+    /* \e[m */
+    if (!*buf)
+        _reset_attr(&switches->attr);
+
     while (*buf) {
         char next_char = *(buf + 1);
 
@@ -95,11 +99,87 @@ void _process_SGR(VT_SWITCHES *switches)
                 buf += 2;
             }
         }
-        if ( *buf == '0' ) {
+        else if ( strnEQ(buf, "38", 2) ) {
             if ( *(buf + 2) == ';' || *(buf + 2) == '\0' ) {
+                switches->attr.ul = 1;
                 switches->attr.fg = 7;
             }
+        }
+        else if ( strnEQ(buf, "39", 2) ) {
+            if ( *(buf + 2) == ';' || *(buf + 2) == '\0' ) {
+                switches->attr.ul = 0;
+                switches->attr.fg = 7;
+            }
+        }
+        else if ( *buf == '4' && next_char >= '0' && next_char <= '7' ) {
+            if ( *(buf + 2) == ';' || *(buf + 2) == '\0' ) {
+                switches->attr.bg = next_char - '0';
+                buf += 2;
+            }
+        }
+        else if ( strnEQ(buf, "49", 2) ) {
+            if ( *(buf + 2) == ';' || *(buf + 2) == '\0' ) {
+                switches->attr.bg = 0;
+            }
+        }
+        else if ( *buf == '0' ) {
+            if ( next_char == ';' || next_char == '\0' ) {
+                _reset_attr(&switches->attr);
+            }
             ++buf;
+        }
+        else if ( *buf == '1' ) {
+            if ( next_char == ';' || next_char == '\0' ) {
+                switches->attr.bo = 1;
+            }
+            ++buf;
+        }
+        else if ( *buf == '2' ) {
+            if ( next_char == ';' || next_char == '\0' ) {
+                switches->attr.bo = 0;
+                switches->attr.fa = 1;
+                ++buf;
+            }
+            else if ( *(buf + 2) == ';' || *(buf + 2) == '\0' ) {
+                switch (next_char) {
+                    case '1':
+                    case '2':
+                        switches->attr.bo = 0;
+                        switches->attr.fa = 0;
+                        break;
+                    case '4':
+                        switches->attr.ul = 0;
+                        break;
+                    case '5':
+                        switches->attr.bl = 0;
+                        break;
+                    case '7':
+                        switches->attr.rv = 0;
+                        break;
+                    default:
+                        buf -= 2;
+                        break;
+                }
+                buf += 2;
+            }
+        }
+        else if ( *buf == '4' ) {
+            if ( next_char == ';' || next_char == '\0' ) {
+                switches->attr.ul = 1;
+                ++buf;
+            }
+        }
+        else if ( *buf == '5' ) {
+            if ( next_char == ';' || next_char == '\0' ) {
+                switches->attr.bl = 1;
+                ++buf;
+            }
+        }
+        else if ( *buf == '7' ) {
+            if ( next_char == ';' || next_char == '\0' ) {
+                switches->attr.rv = 1;
+                ++buf;
+            }
         }
 
         ++buf;
@@ -195,6 +275,19 @@ void _process_ctl(VT_SWITCHES *switches, char **buf)
 
 }
 
+void _copy_attr(VT_ATTR *src, VT_ATTR *dest) {
+    /* I can't figure out how to use Copy :| */
+    /* Copy(src, dest, 1, VT_ATTR); */
+    dest->fg = src->fg;
+    dest->bg = src->bg;
+    dest->bo = src->bo;
+    dest->fa = src->fa;
+    dest->st = src->st;
+    dest->ul = src->ul;
+    dest->bl = src->bl;
+    dest->rv = src->rv;
+}
+
 void _process_text(VT_SWITCHES *switches, char **buf)
 {
     VT_CELL     *cell;
@@ -203,8 +296,8 @@ void _process_text(VT_SWITCHES *switches, char **buf)
 
     cell->value = **buf;
     cell->used  = 1;
+    _copy_attr(&switches->attr, &cell->attr);
     /* Copy(&switches->attr, &cell->attr, 1, VT_ATTR);*/
-    cell->attr.fg = switches->attr.fg;
     /* fprintf(stderr, "x=%d y=%d fg:%d\n",
     switches->x, switches->y,
         switches->rows[switches->y].cells[switches->x].attr.fg); */
@@ -323,7 +416,7 @@ void _reset_attr(VT_ATTR *attr)
 
 SV *_row_attr(VT_SWITCHES *switches, int row, int startcol, int endcol)
 {
-    int len = (endcol - startcol) * 2;
+    int len = (endcol - startcol + 1) * 2;
     int col;
     char *bufpv;
 
@@ -445,6 +538,8 @@ SV *_vt_attr_pack(VT_ATTR attr)
                  | ( attr.bl << 4 )
                  | ( attr.rv << 5 );
 
+    /* fprintf(stderr, "bits[0]: %d\n", attr_bits[0]);
+    fprintf(stderr, "bits[1]: %d\n", attr_bits[1]); */
     return newSVpv(attr_bits, 2);
 }
 
@@ -532,7 +627,7 @@ row_plaintext(self, sv_rownum)
         croak("row_plaintext: Argument out of range!");
     }
 
-    RETVAL = _row_text(switches, rownum, 0);
+    RETVAL = _row_text(switches, rownum, 1);
   OUTPUT:
     RETVAL
 
