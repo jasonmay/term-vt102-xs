@@ -155,7 +155,7 @@ typedef struct _VT_SWITCHES {
     I32 num_rows;
     I32 cursor;
 
-    VT_ROW *rows; /* array of rows (switches->num_rows) */
+    VT_ROW **rows; /* array of pointers to rows (switches->num_rows) */
 
     char seq_buf[64];
 

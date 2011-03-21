@@ -27,7 +27,7 @@ VT_CELL *_current_cell(VT_SWITCHES *switches)
     int x = switches->x,
         y = switches->y;
 
-    return &switches->rows[y].cells[x];
+    return &switches->rows[y]->cells[x];
 }
 
 char _is_csi_terminator(char c)
@@ -390,15 +390,15 @@ void _dec_y(VT_SWITCHES *switches) {
     if ( switches->y < 0 ) {
         switches->y = 0;
 
-        last_row = &switches->rows[switches->num_rows - 1];
+        last_row = switches->rows[end_index];
 
         /* move every row pointer up one */
-        for (row = end_index - 1; row > 0; --row) {
+        for (row = end_index - 1; row >= 0; --row) {
             switches->rows[row + 1] = switches->rows[row];
         }
-        switches->rows[0] = *last_row;
+        switches->rows[0] = last_row;
         for (col = 0; col < switches->num_cols; ++col) {
-            _reset_attr(&switches->rows[0].cells[col].attr);
+            _reset_attr(&switches->rows[0]->cells[col].attr);
         }
     }
 }
@@ -415,15 +415,16 @@ void _inc_y(VT_SWITCHES *switches) {
 
         /* row 0 will be overwritten, store it 
          * to use for the last row */
-        first_row = &switches->rows[0];
+        first_row = switches->rows[0];
 
         /* move every row pointer up one */
         for (row = 0; row < end_index; ++row) {
             switches->rows[row] = switches->rows[row + 1];
         }
-        switches->rows[end_index] = *first_row;
+        switches->rows[end_index] = first_row;
         for (col = 0; col < switches->num_cols; ++col) {
-            _reset_attr(&switches->rows[end_index].cells[col].attr);
+            _reset_attr(&switches->rows[end_index]->cells[col].attr);
+            switches->rows[end_index]->cells[col].value = '\0';
         }
     }
 }
@@ -467,7 +468,7 @@ void _check_cols_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches)
 void _clear_row(VT_SWITCHES *switches, int row)
 {
     int x;
-    VT_ROW *s_row = &switches->rows[row];
+    VT_ROW *s_row = switches->rows[row];
 
     for (x = 0; x < switches->num_cols; ++x) {
         s_row->cells[x].value = '\0';
@@ -503,7 +504,7 @@ SV *_row_attr(VT_SWITCHES *switches, int row, int startcol, int endcol)
         SV *sv_pack;
         int idx = (col - startcol) * 2;
         VT_ATTR *attr =
-            &switches->rows[row-1].cells[col].attr;
+            &switches->rows[row-1]->cells[col].attr;
 
         sv_pack = _vt_attr_pack(*attr);
         pack = SvPV_nolen(sv_pack);
@@ -523,7 +524,7 @@ void _init(VT_SWITCHES *switches)
     VT_CELL *cur_cell;
 
     /* allocate rows */
-    New(0, switches->rows,     switches->num_rows, VT_ROW);
+    New(0, switches->rows,     switches->num_rows, VT_ROW*);
     New(0, switches->tabstops, switches->num_cols, int);
 
     /* establish tabstops 1000000010000000... */
@@ -534,12 +535,13 @@ void _init(VT_SWITCHES *switches)
     _reset_attr(&switches->attr);
 
     for (y = 0; y < switches->num_rows; ++y) {
+        New(0, switches->rows[y], 1, VT_ROW);
 
         /* allocate cells for row y */
-        New(0, switches->rows[y].cells, switches->num_cols, VT_CELL);
+        New(0, switches->rows[y]->cells, switches->num_cols, VT_CELL);
 
         for (x = 0; x < switches->num_cols; ++x) {
-            cur_cell = &switches->rows[y].cells[x];
+            cur_cell = &switches->rows[y]->cells[x];
 
             _reset_attr(&cur_cell->attr);
             cur_cell->used = 0;
@@ -562,13 +564,13 @@ SV* _row_text(VT_SWITCHES *switches, int rownum, int plain)
     New(0, retbuf, len, char);
 
     for (i = 0; i < len; ++i) {
-        cell = &switches->rows[rownum-1].cells[i];
+        cell = &switches->rows[rownum-1]->cells[i];
 
         /*printf("Text: %d, x=%d y=%d\n",
             retbuf[i], i, rownum-1);*/
 
         if (plain) {
-            retbuf[i] = cell->used ? cell->value : ' ';
+            retbuf[i] = cell->value ? cell->value : ' ';
         }
         else {
             retbuf[i] = cell->value;
@@ -875,7 +877,8 @@ DESTROY(self)
   CODE:
     _GET_SWITCHES(switches, self);
     for (i = 0; i < switches->num_rows; ++i) {
-        Safefree(switches->rows[i].cells);
+        Safefree(switches->rows[i]->cells);
+        Safefree(switches->rows[i]);
     }
     Safefree(switches->rows);
     Safefree(switches->tabstops);
