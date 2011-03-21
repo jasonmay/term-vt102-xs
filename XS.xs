@@ -188,6 +188,47 @@ void _process_SGR(VT_SWITCHES *switches)
 
 }
 
+void _process_CUP(VT_SWITCHES *switches)
+{
+    char *buf = switches->seq_buf;
+
+    int to_x = 0, to_y = 0;
+
+    SV *sv_num = sv_2mortal( newSVpv("", PL_na) );
+
+    /* \e[m */
+    if (*buf) {
+        while (*buf && *buf != ';') {
+            if ( *buf >= '0' && *buf <= '9' ) {
+                char s = *buf;
+                sv_catpvn(sv_num, &s, 1);
+                /* fprintf(stderr, "sv_num: %s\n", SvPV_nolen(sv_num));*/
+            }
+            ++buf;
+        }
+        to_y = SvIV(sv_num) - 1;
+    }
+
+    sv_setpvn(sv_num, "", 0);
+    if (*buf) {
+        ++buf; /* skip the ; */
+        /* fprintf(stderr, "... %s\n", buf); */
+
+        while (*buf && *buf != ';') {
+            if ( *buf >= '0' && *buf <= '9' ) {
+                char s = *buf;
+                sv_catpvn(sv_num, &s, 1);
+                /*fprintf(stderr, "sv_num: %s\n", SvPV_nolen(sv_num));*/
+            }
+            ++buf;
+        }
+        to_x = SvIV(sv_num) - 1;
+    }
+
+    switches->x = to_x;
+    switches->y = to_y;
+}
+
 void _process_csi(VT_SWITCHES *switches, char **buf)
 {
     int i, terminated = 0;
@@ -210,6 +251,8 @@ void _process_csi(VT_SWITCHES *switches, char **buf)
                         switches->seq_buf); */
 
                     break;
+                case CSI_CUP:
+                    _process_CUP(switches);
 
                 default:
                     break;
