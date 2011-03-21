@@ -340,19 +340,14 @@ void _process_text(VT_SWITCHES *switches, char **buf)
 {
     VT_CELL     *cell;
 
-    cell = &switches->rows[switches->y].cells[switches->x];
 
-    cell->value = **buf;
-    cell->used  = 1;
-    _copy_attr(&switches->attr, &cell->attr);
-    /* Copy(&switches->attr, &cell->attr, 1, VT_ATTR);*/
-    /* fprintf(stderr, "x=%d y=%d fg:%d\n",
-    switches->x, switches->y,
-        switches->rows[switches->y].cells[switches->x].attr.fg); */
+    if ( switches->x < switches->num_cols ) {
+        cell = &switches->rows[switches->y]->cells[switches->x];
+        cell->value = **buf;
+        cell->used  = 1;
+        _copy_attr(&switches->attr, &cell->attr);
 
-    switches->x++;
-    if ( switches->x > switches->num_cols-1 ) {
-        switches->x = 0;
+        switches->x++;
     }
 
     (*buf)++;
@@ -699,7 +694,7 @@ row_plaintext(self, sv_rownum)
 
     rownum = SvIV(sv_rownum);
 
-    if (rownum < 1 || rownum >= switches->num_cols) {
+    if (rownum < 1 || rownum > switches->num_cols) {
         croak("row_plaintext: Argument out of range!");
     }
 
@@ -722,7 +717,7 @@ row_text(self, sv_rownum)
 
     rownum = SvIV(sv_rownum);
 
-    if (rownum < 1 || rownum >= switches->num_cols) {
+    if (rownum < 1 || rownum > switches->num_cols) {
         croak("row_plaintext: Argument out of range!");
     }
 
