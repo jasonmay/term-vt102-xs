@@ -179,6 +179,7 @@ void     _process_ctl(VT_SWITCHES *, char **);
 void     _process_text(VT_SWITCHES *, char **);
 void     _process(VT_SWITCHES *, SV *);
 void     _inc_y(VT_SWITCHES *);
+void     _dec_y(VT_SWITCHES *);
 void     _check_rows_param(SV *, SV *, VT_SWITCHES *);
 void     _check_cols_param(SV *, SV *, VT_SWITCHES *);
 void     _clear_row(VT_SWITCHES *, int);

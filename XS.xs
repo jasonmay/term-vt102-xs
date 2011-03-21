@@ -311,9 +311,14 @@ void _process_ctl(VT_SWITCHES *switches, char **buf)
                 ++(*buf);
                 _process_csi(switches, buf);
             }
+            if ( **buf == 'M' ) {
+                ++(*buf);
+                _dec_y(switches);
+            }
             break;
         default:
-            printf("Dunno, buddy!\n");
+            /*printf("Dunno, buddy!\n");*/
+            break;
     }
 
 }
@@ -375,8 +380,31 @@ void _process(VT_SWITCHES *switches, SV *sv_in)
     return;
 }
 
+void _dec_y(VT_SWITCHES *switches) {
+    int row, col;
+    int end_index = switches->num_rows - 1;
+    VT_ROW *last_row;
+
+    switches->y--;
+
+    if ( switches->y < 0 ) {
+        switches->y = 0;
+
+        last_row = &switches->rows[switches->num_rows - 1];
+
+        /* move every row pointer up one */
+        for (row = end_index - 1; row > 0; --row) {
+            switches->rows[row + 1] = switches->rows[row];
+        }
+        switches->rows[0] = *last_row;
+        for (col = 0; col < switches->num_cols; ++col) {
+            _reset_attr(&switches->rows[0].cells[col].attr);
+        }
+    }
+}
+
 void _inc_y(VT_SWITCHES *switches) {
-    int row;
+    int row, col;
     int end_index = switches->num_rows - 1;
     VT_ROW *first_row;
 
@@ -394,6 +422,9 @@ void _inc_y(VT_SWITCHES *switches) {
             switches->rows[row] = switches->rows[row + 1];
         }
         switches->rows[end_index] = *first_row;
+        for (col = 0; col < switches->num_cols; ++col) {
+            _reset_attr(&switches->rows[end_index].cells[col].attr);
+        }
     }
 }
 
