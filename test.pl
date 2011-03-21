@@ -4,11 +4,9 @@ use warnings;
 use blib;
 use Term::VT102::XS;
 
-my $v = Term::VT102::XS->new();
+my $v = Term::VT102::XS->new(cols => 11);
 
-$v->process("hello\njasong\bmay\n");
+$v->process("0123\e[32m45\e[0m67890");
 warn $v->row_plaintext(1);
-warn $v->row_plaintext(2);
+warn join(" ", map { ord } split '', $v->row_attr(1));
 
-warn (($v->size)[0]);
-warn (($v->size)[1]);

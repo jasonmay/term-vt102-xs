@@ -95,6 +95,12 @@ void _process_SGR(VT_SWITCHES *switches)
                 buf += 2;
             }
         }
+        if ( *buf == '0' ) {
+            if ( *(buf + 2) == ';' || *(buf + 2) == '\0' ) {
+                switches->attr.fg = 7;
+            }
+            ++buf;
+        }
 
         ++buf;
     }
@@ -197,7 +203,11 @@ void _process_text(VT_SWITCHES *switches, char **buf)
 
     cell->value = **buf;
     cell->used  = 1;
-    Copy(&switches->attr, &cell->attr, 1, VT_ATTR);
+    /* Copy(&switches->attr, &cell->attr, 1, VT_ATTR);*/
+    cell->attr.fg = switches->attr.fg;
+    /* fprintf(stderr, "x=%d y=%d fg:%d\n",
+    switches->x, switches->y,
+        switches->rows[switches->y].cells[switches->x].attr.fg); */
 
     switches->x++;
     if ( switches->x > switches->num_cols-1 ) {
@@ -315,23 +325,27 @@ SV *_row_attr(VT_SWITCHES *switches, int row, int startcol, int endcol)
 {
     int len = (endcol - startcol) * 2;
     int col;
-    char *buf;
+    char *bufpv;
 
     SV *ret;
 
-    New(0, buf, len, char);
+    New(0, bufpv, len, char);
 
     for (col = startcol; col <= endcol; ++col) {
+        char *pack;
+        SV *sv_pack;
         int idx = (col - startcol) * 2;
         VT_ATTR *attr =
-            &switches->rows[row].cells[col].attr;
+            &switches->rows[row-1].cells[col].attr;
 
-        /* this may be horrible but I think this is awesome */
-        Copy(buf + idx, SvPV_nolen(_vt_attr_pack(*attr)), 2, char);
+        sv_pack = _vt_attr_pack(*attr);
+        pack = SvPV_nolen(sv_pack);
+        *(bufpv + idx)     = pack[0];
+        *(bufpv + idx + 1) = pack[1];
     }
 
-    ret = newSVpv(buf, len);
-    Safefree(buf);
+    ret = newSVpv(bufpv, len);
+    Safefree(bufpv);
 
     return ret;
 }
@@ -349,6 +363,8 @@ void _init(VT_SWITCHES *switches)
     for (x = 0; x < switches->num_cols; ++x) {
         switches->tabstops[x] = (x % 8 == 0);
     }
+
+    _reset_attr(&switches->attr);
 
     for (y = 0; y < switches->num_rows; ++y) {
 
@@ -394,6 +410,7 @@ SV* _row_text(VT_SWITCHES *switches, int rownum, int plain)
 
     ret = newSVpv(retbuf, len);
     Safefree(retbuf);
+
     return ret;
 }
 
@@ -629,6 +646,7 @@ row_attr(self, row, ...)
     VT_SWITCHES *switches;
   CODE:
 
+    _GET_SWITCHES(switches, self);
 
     error = 0;
     if ( !SvIOK(row) )
@@ -640,15 +658,17 @@ row_attr(self, row, ...)
 
     if ( items == 4 ) {
 
-        if ( !SvIOK( ST(2) ) || !SvIOK( ST(3) ) )
-            croak("2");error = 1;
-
-        startcol = SvIV( ST(2) );
-        endcol   = SvIV( ST(2) );
+        if ( !SvIOK( ST(2) ) || !SvIOK( ST(3) ) ) {
+            error = 1;
+        }
+        else {
+            startcol = SvIV( ST(2) );
+            endcol   = SvIV( ST(2) );
+        }
     }
     else {
-        _GET_SWITCHES(switches, self);
-        startcol = endcol = switches->x;
+        startcol = 0;
+        endcol   = switches->num_cols - 1;
     }
 
     if ( error )
