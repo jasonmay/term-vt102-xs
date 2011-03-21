@@ -229,6 +229,70 @@ void _process_CUP(VT_SWITCHES *switches)
     switches->y = to_y;
 }
 
+int _get_number_from_string(char *buf) {
+    SV *sv_num = sv_2mortal( newSVpv("", PL_na) );
+    int ret = 0;
+
+    if (*buf) {
+        while (*buf) {
+            if ( *buf >= '0' && *buf <= '9' ) {
+                char s = *buf;
+                sv_catpvn(sv_num, &s, 1);
+            }
+            ++buf;
+        }
+        ret = SvIV(sv_num);
+    }
+
+    return ret;
+}
+
+void _process_CUU(VT_SWITCHES *switches)
+{
+    int i, offset = _get_number_from_string(switches->seq_buf);
+    if ( !offset ) offset = 1;
+
+    for (i = 0; i < offset; ++i) {
+        /* INEFFICIENT!! - TODO shift all rows around at one time */
+        _dec_y(switches);
+    }
+
+}
+
+void _process_CUD(VT_SWITCHES *switches)
+{
+    int i, offset = _get_number_from_string(switches->seq_buf);
+    if ( !offset ) offset = 1;
+
+    for (i = 0; i < offset; ++i) {
+        /* INEFFICIENT!! - TODO shift all rows around at one time */
+        _inc_y(switches);
+    }
+
+}
+
+void _process_CUB(VT_SWITCHES *switches)
+{
+    int i, offset = _get_number_from_string(switches->seq_buf);
+    if ( !offset ) offset = 1;
+
+    switches->x -= offset;
+
+    if ( switches->x < 0 )
+        switches->x = 0;
+}
+
+void _process_CUF(VT_SWITCHES *switches)
+{
+    int i, offset = _get_number_from_string(switches->seq_buf);
+    if ( !offset ) offset = 1;
+
+    switches->x -= offset;
+
+    if ( switches->x >= switches->num_cols )
+        switches->x = switches->num_cols - 1;
+}
+
 void _process_csi(VT_SWITCHES *switches, char **buf)
 {
     int i, terminated = 0;
@@ -253,6 +317,23 @@ void _process_csi(VT_SWITCHES *switches, char **buf)
                     break;
                 case CSI_CUP:
                     _process_CUP(switches);
+                    break;
+
+                case CSI_CUU:
+                    _process_CUU(switches);
+                    break;
+
+                case CSI_CUD:
+                    _process_CUD(switches);
+                    break;
+
+                case CSI_CUB:
+                    _process_CUB(switches);
+                    break;
+
+                case CSI_CUF:
+                    _process_CUF(switches);
+                    break;
 
                 default:
                     break;
