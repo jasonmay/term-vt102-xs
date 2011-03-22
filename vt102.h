@@ -149,6 +149,14 @@ typedef struct _VT_ROW {
     VT_CELL *cells; /* array of cells (switches->num_cols) */
 } VT_ROW;
 
+typedef struct _VT_DEC_STATE {
+    int x;
+    int y;
+    VT_ATTR *attr;
+    SV *pv_title; /* allocated pv */
+    SV *pv_icon;  /* allocated pv */
+} VT_DEC_STATE;
+
 typedef struct _VT_SWITCHES {
     I32 x;
     I32 y;
@@ -169,6 +177,8 @@ typedef struct _VT_SWITCHES {
     int *tabstops;
 
     VT_ATTR attr;
+
+    VT_DEC_STATE saved_state;
 
 } VT_SWITCHES;
 
