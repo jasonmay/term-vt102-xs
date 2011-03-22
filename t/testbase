@@ -18,7 +18,9 @@ sub run_tests {
 		my $testref = shift @tests;
 		my ($cols, $rows, $text, @output) = @$testref;
 		my ($ncols, $nrows, $row, $col, $settings);
-		my ($line, $aline, $alineref, $galine, $passed);
+		my ($line, $aline, $alineref, $galine, $passing);
+
+		$passing = 1;
 
 		$settings = undef;
 		if (ref $cols) {
@@ -31,8 +33,10 @@ sub run_tests {
 	
 		if (($cols != $ncols) or ($rows != $nrows)) {
 			fail "returned size: $ncols x $nrows, wanted $cols x $rows\n";
-			next;
+            $passing = 0;
 		}
+
+        next unless $passing;
 
 		if (defined $settings) {
 			foreach (keys %$settings) {
@@ -40,15 +44,16 @@ sub run_tests {
 				  !defined $vt->option_set ($_,$settings->{$_})
 				) {
 					fail "failed to set option: $_";
-                    next;
+                    $passing = 0;
 				}
 			}
 		}
 
+        next unless $passing;
+
 		$vt->process ($text);
 	
 		$row = 0;
-		$passed = 1;
 	
 		while ($#output > 0) {
 			$line = shift @output;
@@ -63,17 +68,17 @@ sub run_tests {
 			}
 			$row ++;
 			if ($vt->row_text ($row) ne $line) {
-				$passed = 0;
+				$passing = 0;
 				diag "test $i: row $row incorrect, got '" .
 				  show_text ($vt->row_text ($row)) . "', expected '" .
 				  show_text ($line) . "'\n";
-				next;
+				last;
 			}
 			next if (not defined $alineref);
 			$galine = $vt->row_attr ($row);
 			for ($col = 0; $col < $cols; $col ++) {
 				if (substr ($aline, 2 * $col, 2) ne substr ($galine, 2 * $col, 2)) {
-					$passed = 0;
+					$passing = 0;
 					warn "test $i: row $row col " . ($col + 1) .
 					  " attributes incorrect, got '" .
 					  show_attr ($vt, substr ($galine, 2 * $col, 2)) .
@@ -84,13 +89,14 @@ sub run_tests {
 			}
 		}
 	
-		if ($passed == 0) {
+		if ($passing) {
+            pass();
+        }
+        else {
 			fail "screen contents ($cols x $rows):\n";
 			for (my $dumprow = 1; $dumprow <= $rows; $dumprow++) {
 				print STDERR "[" . $vt->row_plaintext ($dumprow) . "]\n";
 			}
-		} else {
-            pass;
 		}
 	}
 }
