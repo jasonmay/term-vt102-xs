@@ -6,6 +6,6 @@ use Term::VT102::XS;
 
 my $v = Term::VT102::XS->new(cols => 4);
 
-$v->process("0123\e[Dh\e[D\e[Do");
+$v->process("0123\e[Dh\e[D\e[Do\e[2K");
 warn $v->row_plaintext(1);
 

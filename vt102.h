@@ -121,6 +121,7 @@
 #define _ISNUM(C) ( (C) >= '0' && (C) <= '9' )
 #define _GET_SWITCHES(V, O) V = INT2PTR(VT_SWITCHES*, SvIV(SvRV(O)))
 
+
 typedef struct _VT_ATTR {
     int fg;
     int bg;

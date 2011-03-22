@@ -311,6 +311,86 @@ void _process_ECH(VT_SWITCHES *switches)
     }
 }
 
+void _process_EL(VT_SWITCHES *switches)
+{
+    int row, col, num = _get_number_from_string(switches->seq_buf);
+
+    if ( !num && !switches->x && !switches->y )
+        num = 2;
+
+    /* cursor to end */
+    switch (num) {
+        case 0:
+            for (col = switches->x; col < switches->num_cols; ++col) {
+                switches->rows[switches->y]->cells[col].value = '\0';
+                _reset_attr(&switches->rows[switches->y]->cells[col].attr);
+            }
+            break;
+
+        case 1:
+            for (col = 0; col <= switches->x; ++col) {
+                switches->rows[switches->y]->cells[col].value = '\0';
+                _reset_attr(&switches->rows[switches->y]->cells[col].attr);
+            }
+            break;
+
+        default:
+            for (col = 0; col < switches->num_cols; ++col) {
+                switches->rows[switches->y]->cells[col].value = '\0';
+                _reset_attr(&switches->rows[switches->y]->cells[col].attr);
+            }
+            break;
+    }
+}
+
+void _process_ED(VT_SWITCHES *switches)
+{
+    int row, col, num = _get_number_from_string(switches->seq_buf);
+
+    if ( !num && !switches->x && !switches->y )
+        num = 2;
+
+    /* cursor to end */
+    switch (num) {
+        case 0:
+            for (col = switches->x; col < switches->num_cols; ++col) {
+                switches->rows[switches->y]->cells[col].value = '\0';
+                _reset_attr(&switches->rows[switches->y]->cells[col].attr);
+            }
+
+            for (row = switches->y + 1; row < switches->num_rows; ++row) {
+                for (col = 0; col < switches->num_cols; ++col) {
+                    switches->rows[row]->cells[col].value = '\0';
+                    _reset_attr(&switches->rows[row]->cells[col].attr);
+                }
+            }
+            break;
+
+        case 1:
+            for (col = 0; col <= switches->x; ++col) {
+                switches->rows[switches->y]->cells[col].value = '\0';
+                _reset_attr(&switches->rows[switches->y]->cells[col].attr);
+            }
+
+            for (row = 0; row < switches->y; ++row) {
+                for (col = 0; col < switches->num_cols; ++col) {
+                    switches->rows[row]->cells[col].value = '\0';
+                    _reset_attr(&switches->rows[row]->cells[col].attr);
+                }
+            }
+            break;
+
+        default:
+            for (row = 0; row < switches->num_rows; ++row) {
+                for (col = 0; col <= switches->num_cols; ++col) {
+                    switches->rows[row]->cells[col].value = '\0';
+                    _reset_attr(&switches->rows[row]->cells[col].attr);
+                }
+            }
+            break;
+    }
+}
+
 void _process_csi(VT_SWITCHES *switches, char **buf)
 {
     int i, terminated = 0;
@@ -355,6 +435,14 @@ void _process_csi(VT_SWITCHES *switches, char **buf)
 
                 case CSI_ECH:
                     _process_ECH(switches);
+                    break;
+
+                case CSI_EL:
+                    _process_EL(switches);
+                    break;
+
+                case CSI_ED:
+                    _process_ED(switches);
                     break;
 
                 default:
