@@ -293,6 +293,24 @@ void _process_CUF(VT_SWITCHES *switches)
         switches->x = switches->num_cols - 1;
 }
 
+void _process_ECH(VT_SWITCHES *switches)
+{
+    int col, end, chars = _get_number_from_string(switches->seq_buf);
+    if ( !chars ) chars = 1;
+
+    end = switches->x + chars;
+
+    if ( end >= switches->num_cols ) end = switches->num_cols - 1;
+
+    for (col = switches->x;
+         col < switches->x + chars && col < switches->num_cols;
+         ++col) {
+
+        switches->rows[switches->y]->cells[col].value = '\0';
+        _reset_attr(&switches->rows[switches->y]->cells[col].attr);
+    }
+}
+
 void _process_csi(VT_SWITCHES *switches, char **buf)
 {
     int i, terminated = 0;
@@ -333,6 +351,10 @@ void _process_csi(VT_SWITCHES *switches, char **buf)
 
                 case CSI_CUF:
                     _process_CUF(switches);
+                    break;
+
+                case CSI_ECH:
+                    _process_ECH(switches);
                     break;
 
                 default:
