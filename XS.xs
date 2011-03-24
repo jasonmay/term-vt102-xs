@@ -471,9 +471,6 @@ void _process_ctl(VT_SWITCHES *switches, char **buf)
         case CHAR_CTL_BS:
             if ( switches->x > 0 ) --switches->x;
             current_cell = _current_cell(switches);
-            /* _reset_attr ??? */
-            current_cell->used  = 0;
-            current_cell->value = '\0';
             break;
 
         case CHAR_CTL_CR:
