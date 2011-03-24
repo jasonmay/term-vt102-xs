@@ -6,12 +6,6 @@
 #define DEFAULT_COLS 80
 #define DEFAULT_ROWS 24
 
-#define NOT_IN_SEQ  0
-#define IN_ESC_SEQ  1
-#define IN_CTL_SEQ  2
-#define IN_OSC_SEQ  3
-#define IN_CSI_SEQ  4
-
 #define CHAR_CTL_NUL  0
 #define CHAR_CTL_ENQ  5
 #define CHAR_CTL_BEL  7
@@ -172,8 +166,7 @@ typedef struct _VT_SWITCHES {
 
     VT_ROW **rows; /* array of pointers to rows (switches->num_rows) */
 
-    char seq_buf[64]; /* text between [ and TERM (exclusive) */
-    char ctl_buf[64]; /* entire esc sequence   */
+    char seq_buf[64];
 
     VT_OPTIONS options;
 
