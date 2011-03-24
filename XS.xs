@@ -287,7 +287,7 @@ void _process_CUF(VT_SWITCHES *switches)
     int i, offset = _get_number_from_string(switches->seq_buf);
     if ( !offset ) offset = 1;
 
-    switches->x -= offset;
+    switches->x += offset;
 
     if ( switches->x >= switches->num_cols )
         switches->x = switches->num_cols - 1;
