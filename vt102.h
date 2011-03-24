@@ -183,22 +183,22 @@ typedef struct _VT_SWITCHES {
 } VT_SWITCHES;
 
 /* prototypes */
-VT_CELL *_current_cell(VT_SWITCHES *);
-char     _is_csi_terminator(char);
-void     _process_csi(VT_SWITCHES *, char **);
-void     _process_ctl(VT_SWITCHES *, char **);
-void     _process_text(VT_SWITCHES *, char **);
-void     _process(VT_SWITCHES *, SV *);
-void     _inc_y(VT_SWITCHES *);
-void     _dec_y(VT_SWITCHES *);
-void     _check_rows_param(SV *, SV *, VT_SWITCHES *);
-void     _check_cols_param(SV *, SV *, VT_SWITCHES *);
-void     _clear_row(VT_SWITCHES *, int);
-void     _reset_attr(VT_ATTR *);
-SV      *_row_attr(VT_SWITCHES *, int, int, int);
-void     _init(VT_SWITCHES *);
-SV      *_row_text(VT_SWITCHES *, int, int);
-SV      *_attr_pack(int, int, int, int, int, int, int, int);
-SV      *_vt_attr_pack(VT_ATTR);
+VT_CELL *vt102_current_cell(VT_SWITCHES *);
+char     vt102_is_csi_terminator(char);
+void     vt102_process_csi(VT_SWITCHES *, char **);
+void     vt102_process_ctl(VT_SWITCHES *, char **);
+void     vt102_process_text(VT_SWITCHES *, char **);
+void     vt102_process(VT_SWITCHES *, SV *);
+void     vt102_inc_y(VT_SWITCHES *);
+void     vt102_dec_y(VT_SWITCHES *);
+void     vt102_check_rows_param(SV *, SV *, VT_SWITCHES *);
+void     vt102_check_cols_param(SV *, SV *, VT_SWITCHES *);
+void     vt102_clear_row(VT_SWITCHES *, int);
+void     vt102_reset_attr(VT_ATTR *);
+SV      *vt102_row_attr(VT_SWITCHES *, int, int, int);
+void     vt102_init(VT_SWITCHES *);
+SV      *vt102_row_text(VT_SWITCHES *, int, int);
+SV      *vt102_attr_pack(int, int, int, int, int, int, int, int);
+SV      *vt102_vt_attr_pack(VT_ATTR);
 
 #endif /* end of include guard: _VT102_H_ */
