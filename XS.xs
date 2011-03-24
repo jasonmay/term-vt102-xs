@@ -293,6 +293,12 @@ void _process_CUF(VT_SWITCHES *switches)
         switches->x = switches->num_cols - 1;
 }
 
+void _clear_cell(VT_CELL *cell)
+{
+    cell->value = '\0';
+    _reset_attr(&cell->attr);
+}
+
 void _process_ECH(VT_SWITCHES *switches)
 {
     int col, end, chars = _get_number_from_string(switches->seq_buf);
@@ -311,6 +317,16 @@ void _process_ECH(VT_SWITCHES *switches)
     }
 }
 
+void _clear_row(VT_SWITCHES *switches, int row)
+{
+    int col;
+    VT_ROW *s_row = switches->rows[row];
+
+    for (col = 0; col < switches->num_cols; ++col) {
+        _clear_cell(&s_row->cells[col]);
+    }
+}
+
 void _process_EL(VT_SWITCHES *switches)
 {
     int row, col, num = _get_number_from_string(switches->seq_buf);
@@ -322,23 +338,18 @@ void _process_EL(VT_SWITCHES *switches)
     switch (num) {
         case 0:
             for (col = switches->x; col < switches->num_cols; ++col) {
-                switches->rows[switches->y]->cells[col].value = '\0';
-                _reset_attr(&switches->rows[switches->y]->cells[col].attr);
+                _clear_cell( &switches->rows[switches->y]->cells[col] );
             }
             break;
 
         case 1:
             for (col = 0; col <= switches->x; ++col) {
-                switches->rows[switches->y]->cells[col].value = '\0';
-                _reset_attr(&switches->rows[switches->y]->cells[col].attr);
+                _clear_cell( &switches->rows[switches->y]->cells[col] );
             }
             break;
 
         default:
-            for (col = 0; col < switches->num_cols; ++col) {
-                switches->rows[switches->y]->cells[col].value = '\0';
-                _reset_attr(&switches->rows[switches->y]->cells[col].attr);
-            }
+            _clear_row(switches, switches->y);
             break;
     }
 }
@@ -354,38 +365,27 @@ void _process_ED(VT_SWITCHES *switches)
     switch (num) {
         case 0:
             for (col = switches->x; col < switches->num_cols; ++col) {
-                switches->rows[switches->y]->cells[col].value = '\0';
-                _reset_attr(&switches->rows[switches->y]->cells[col].attr);
+                _clear_cell( &switches->rows[switches->y]->cells[col] );
             }
 
             for (row = switches->y + 1; row < switches->num_rows; ++row) {
-                for (col = 0; col < switches->num_cols; ++col) {
-                    switches->rows[row]->cells[col].value = '\0';
-                    _reset_attr(&switches->rows[row]->cells[col].attr);
-                }
+                _clear_row( switches, row );
             }
             break;
 
         case 1:
             for (col = 0; col <= switches->x; ++col) {
-                switches->rows[switches->y]->cells[col].value = '\0';
-                _reset_attr(&switches->rows[switches->y]->cells[col].attr);
+                _clear_cell( &switches->rows[switches->y]->cells[col] );
             }
 
             for (row = 0; row < switches->y; ++row) {
-                for (col = 0; col < switches->num_cols; ++col) {
-                    switches->rows[row]->cells[col].value = '\0';
-                    _reset_attr(&switches->rows[row]->cells[col].attr);
-                }
+                _clear_row( switches, row );
             }
             break;
 
         default:
             for (row = 0; row < switches->num_rows; ++row) {
-                for (col = 0; col <= switches->num_cols; ++col) {
-                    switches->rows[row]->cells[col].value = '\0';
-                    _reset_attr(&switches->rows[row]->cells[col].attr);
-                }
+                _clear_row( switches, row );
             }
             break;
     }
@@ -649,18 +649,6 @@ void _check_cols_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches)
             croak("cols => INTEGER, ...");
         }
     };
-}
-
-void _clear_row(VT_SWITCHES *switches, int row)
-{
-    int x;
-    VT_ROW *s_row = switches->rows[row];
-
-    for (x = 0; x < switches->num_cols; ++x) {
-        s_row->cells[x].value = '\0';
-        _reset_attr(&s_row->cells[x].attr);
-        s_row->cells[x].used  = 0;
-    }
 }
 
 void _reset_attr(VT_ATTR *attr)
