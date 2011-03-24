@@ -396,15 +396,17 @@ void vt102_process_csi(VT_SWITCHES *switches, char **buf)
     int i, terminated = 0;
     char c;
 
-    for (i = 0; i < 64; ++i) {
-        c = *( (*buf) + i );
+    switches->in_esc = IN_CSI_SEQ;
+
+    for (i = strlen(switches->seq_buf); i < 64; ++i) {
+        c = (*buf)[i];
 
         if ( !c )
             break;
 
         if ( vt102_is_csi_terminator(c) ) {
             switches->seq_buf[i] = '\0';
-            (*buf) += i + 1;
+            (*buf) += i;
             terminated = 1;
             switch (c) {
                 case CSI_SGR:
@@ -449,11 +451,22 @@ void vt102_process_csi(VT_SWITCHES *switches, char **buf)
                     break;
             }
 
+            switches->in_esc = NOT_IN_SEQ;
+            switches->seq_buf[0] = '\0';
             break;
         }
         else {
             switches->seq_buf[i] = c;
         }
+    }
+
+    /* 64 chars I think is the limit for an esc seq */
+    if ( i == 64 ) {
+        switches->seq_buf[0] = '\0';
+        switches->in_esc = NOT_IN_SEQ;
+    }
+    else {
+        (*buf) += i;
     }
 }
 
@@ -466,6 +479,8 @@ void vt102_process_ctl(VT_SWITCHES *switches, char **buf)
 
     if ( switches->xon == 0 )
         return;
+
+    switches->in_esc = IN_CTL_SEQ;
 
     switch (c) {
         case CHAR_CTL_BS:
@@ -499,7 +514,7 @@ void vt102_process_ctl(VT_SWITCHES *switches, char **buf)
                 ++(*buf);
                 vt102_process_csi(switches, buf);
             }
-            if ( **buf == 'M' ) {
+            else if ( **buf == 'M' ) {
                 ++(*buf);
                 vt102_dec_y(switches);
             }
@@ -548,11 +563,32 @@ void vt102_process(VT_SWITCHES *switches, SV *sv_in)
     char *buf = SvPV_nolen(sv_in);
 
     while (*buf != '\0') {
+<<<<<<< Updated upstream
         if ( _IS_CTL( *buf ) ) {
             vt102_process_ctl(switches, &buf);
         }
         else if ( *buf != 127 ) {
             vt102_process_text(switches, &buf);
+=======
+        if ( _IS_CTL( *buf ) || switches->in_esc == IN_CTL_SEQ ) {
+            switches->in_esc = IN_CTL_SEQ;
+            _process_ctl(switches, &buf);
+        }
+        else if ( *buf != 127 ) {
+            switch (switches->in_esc) {
+                case IN_CTL_SEQ:
+                    _process_ctl(switches, &buf);
+                    break;
+
+                case IN_ESC_SEQ:
+                    _process_csi(switches, &buf);
+                    break;
+
+                default:
+                    _process_text(switches, &buf);
+                    break;
+            }
+>>>>>>> Stashed changes
         }
         else {
             ++buf;
@@ -697,6 +733,8 @@ void vt102_init(VT_SWITCHES *switches)
     /* allocate rows */
     New(0, switches->rows,     switches->num_rows, VT_ROW*);
     New(0, switches->tabstops, switches->num_cols, int);
+
+    switches->seq_buf[0] = switches->ctl_buf[0] = '\0';
 
     /* establish tabstops 1000000010000000... */
     for (x = 0; x < switches->num_cols; ++x) {
