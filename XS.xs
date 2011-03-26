@@ -653,6 +653,15 @@ void vt102_check_cols_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches)
     };
 }
 
+void vt102_check_zerobased_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches)
+{
+    char *param = SvPV_nolen( sv_param );
+
+    if ( strEQ(param, "zerobased") ) {
+        switches->zerobased = (I8) SvTRUE(sv_value);
+    };
+}
+
 void vt102_reset_attr(VT_ATTR *attr)
 {
 
@@ -879,6 +888,7 @@ new(class, ...)
 
             vt102_check_rows_param( ST(i), ST(i+1), switches );
             vt102_check_cols_param( ST(i), ST(i+1), switches );
+            vt102_check_zerobased_param( ST(i), ST(i+1), switches );
         }
     }
 

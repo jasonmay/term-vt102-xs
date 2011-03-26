@@ -173,6 +173,7 @@ typedef struct _VT_SWITCHES {
     /* internal toggles */
     I8 in_esc;
     I8 xon;
+    I8 zerobased;
 
     int *tabstops;
 
