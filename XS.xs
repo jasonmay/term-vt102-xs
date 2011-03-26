@@ -479,6 +479,8 @@ void vt102_process_ctl(VT_SWITCHES *switches, char **buf)
 
         case CHAR_CTL_LF:
             vt102_inc_y(switches);
+            if (switches->options.lftocrlf)
+                switches->x = 0;
             break;
 
         case CHAR_CTL_HT:
@@ -528,17 +530,22 @@ void vt102_process_text(VT_SWITCHES *switches, char **buf)
 {
     VT_CELL     *cell;
 
-
-    if ( switches->x < switches->num_cols ) {
-        cell = &switches->rows[switches->y]->cells[switches->x];
-        cell->value = **buf;
-        cell->used  = 1;
-        vt102_copy_attr(&switches->attr, &cell->attr);
-
-        switches->x++;
+    if ( switches->x >= switches->num_cols ) {
+        if ( switches->options.linewrap ) {
+            vt102_inc_y(switches);
+            switches->x = 0;
+        }
+        else {
+            return;
+        }
     }
 
-    (*buf)++;
+    cell        = &switches->rows[switches->y]->cells[switches->x];
+    cell->value = **buf;
+    cell->used  = 1;
+    vt102_copy_attr(&switches->attr, &cell->attr);
+
+    switches->x++;
 
     return;
 }
@@ -553,6 +560,7 @@ void vt102_process(VT_SWITCHES *switches, SV *sv_in)
         }
         else if ( *buf != 127 ) {
             vt102_process_text(switches, &buf);
+            ++buf;
         }
         else {
             ++buf;
@@ -1175,11 +1183,11 @@ option_set(self, option, value)
     vt102_option_check(switches, option, value, "LINEWRAP",
                        &switches->options.linewrap, &ret);
 
-    vt102_option_check(switches, option, value, "CRTOCRLF",
-                       &switches->options.linewrap, &ret);
+    vt102_option_check(switches, option, value, "LFTOCRLF",
+                       &switches->options.lftocrlf, &ret);
 
     vt102_option_check(switches, option, value, "IGNOREXOFF",
-                       &switches->options.linewrap, &ret);
+                       &switches->options.ignorexoff, &ret);
 
     if ( ret == NULL )
         XSRETURN_UNDEF;
