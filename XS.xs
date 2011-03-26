@@ -1001,6 +1001,58 @@ size(self)
     mPUSHs( newSViv(switches->num_rows) );
 
 SV*
+rows(self)
+    SV *self
+  PREINIT:
+    VT_SWITCHES *switches;
+  CODE:
+
+    _GET_SWITCHES(switches, self);
+
+    RETVAL = newSViv(switches->num_rows);
+  OUTPUT:
+    RETVAL
+
+SV*
+cols(self)
+    SV *self
+  PREINIT:
+    VT_SWITCHES *switches;
+  CODE:
+
+    _GET_SWITCHES(switches, self);
+
+    RETVAL = newSViv(switches->num_cols);
+  OUTPUT:
+    RETVAL
+
+SV*
+x(self)
+    SV *self
+  PREINIT:
+    VT_SWITCHES *switches;
+  CODE:
+
+    _GET_SWITCHES(switches, self);
+
+    RETVAL = newSViv(switches->x + 1);
+  OUTPUT:
+    RETVAL
+
+SV*
+y(self)
+    SV *self
+  PREINIT:
+    VT_SWITCHES *switches;
+  CODE:
+
+    _GET_SWITCHES(switches, self);
+
+    RETVAL = newSViv(switches->y + 1);
+  OUTPUT:
+    RETVAL
+
+SV*
 attr_unpack(sv, ...)
     SV *sv
   PREINIT:
