@@ -157,6 +157,20 @@ typedef struct _VT_DEC_STATE {
     SV *pv_icon;  /* allocated pv */
 } VT_DEC_STATE;
 
+typedef struct _VT_CALLBACKS {
+    SV *bell;
+    SV *clear;
+    SV *output;
+    SV *rowchange;
+    SV *scroll_down;
+    SV *scroll_up;
+    SV *unknown;
+    SV *string;
+    SV *xiconname;
+    SV *xwintitle;
+    SV *linefeed;
+} VT_CALLBACKS;
+
 typedef struct _VT_SWITCHES {
     I32 x;
     I32 y;
@@ -180,6 +194,8 @@ typedef struct _VT_SWITCHES {
     VT_ATTR attr;
 
     VT_DEC_STATE saved_state;
+
+    VT_CALLBACKS cb;
 
 } VT_SWITCHES;
 

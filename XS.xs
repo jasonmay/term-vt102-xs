@@ -1283,6 +1283,36 @@ option_read(self, option)
   OUTPUT:
     RETVAL
 
+SV*
+callback_set(self, action, ...)
+    SV *self
+    SV *action
+  PREINIT:
+    VT_SWITCHES *switches;
+    SV *callback;
+    SV *private;
+  CODE:
+    _GET_SWITCHES(switches, self);
+
+    RETVAL = newSViv(0);
+  OUTPUT:
+    RETVAL
+
+SV*
+callback_call(self, action, param1, param2)
+    SV *self
+    SV *action
+    SV *param1
+    SV *param2
+  PREINIT:
+    VT_SWITCHES *switches;
+  CODE:
+    _GET_SWITCHES(switches, self);
+
+    RETVAL = newSViv(0);
+  OUTPUT:
+    RETVAL
+
 void
 DESTROY(self)
     SV *self
