@@ -459,8 +459,6 @@ void vt102_process_csi(VT_SWITCHES *switches, char **buf)
 
 void vt102_process_ctl(VT_SWITCHES *switches, char **buf)
 {
-    VT_CELL *current_cell;
-
     char c = **buf;
     (*buf)++;
 
@@ -470,7 +468,6 @@ void vt102_process_ctl(VT_SWITCHES *switches, char **buf)
     switch (c) {
         case CHAR_CTL_BS:
             if ( switches->x > 0 ) --switches->x;
-            current_cell = vt102_current_cell(switches);
             break;
 
         case CHAR_CTL_CR:
