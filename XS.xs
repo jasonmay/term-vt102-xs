@@ -877,6 +877,7 @@ new(class, ...)
     switches->num_cols        = DEFAULT_COLS;
     switches->num_rows        = DEFAULT_ROWS;
     switches->x = switches->y = 0;
+    switches->zerobased       = 0;
 
     if (items > 1) {
         if (items % 2 == 0) {
@@ -957,16 +958,26 @@ row_plaintext(self, sv_rownum, ...)
     else {
         startcol = 1;
         endcol   = switches->num_cols;
+
+        if ( switches->zerobased ) {
+            --startcol; --endcol;
+        }
     }
 
     if ( error )
         croak("Usage: row_plaintext(row, [startcol], [endcol])");
 
-    if ( row      < 1 || row      > switches->num_rows ) XSRETURN_UNDEF;
-    if ( startcol < 1 || startcol > switches->num_cols ) XSRETURN_UNDEF;
-    if ( endcol   < 1 || endcol   > switches->num_cols ) XSRETURN_UNDEF;
+    if ( !switches->zerobased ) {
+        --row;
+        --startcol;
+        --endcol;
+    }
 
-    RETVAL = vt102_row_text(switches, row-1, startcol-1, endcol-1, 1);
+    if ( row      < 0 || row      >= switches->num_rows ) XSRETURN_UNDEF;
+    if ( startcol < 0 || startcol >= switches->num_cols ) XSRETURN_UNDEF;
+    if ( endcol   < 0 || endcol   >= switches->num_cols ) XSRETURN_UNDEF;
+
+    RETVAL = vt102_row_text(switches, row, startcol, endcol, 1);
   OUTPUT:
     RETVAL
 
@@ -999,22 +1010,34 @@ row_text(self, sv_rownum, ...)
         else {
             startcol = SvIV( ST(2) );
             endcol   = SvIV( ST(2) );
+
         }
     }
     else {
         startcol = 1;
         endcol   = switches->num_cols;
+
+        if ( switches->zerobased ) {
+            --startcol; --endcol;
+        }
     }
 
-    vt102_clip_row(switches, &row,      0);
-    vt102_clip_col(switches, &startcol, 0);
-    vt102_clip_col(switches, &endcol,   0);
+    if ( !switches->zerobased ) {
+        --row;
+        --startcol;
+        --endcol;
+    }
+
+
+    if ( row      < 0 || row      >= switches->num_rows ) XSRETURN_UNDEF;
+    if ( startcol < 0 || startcol >= switches->num_cols ) XSRETURN_UNDEF;
+    if ( endcol   < 0 || endcol   >= switches->num_cols ) XSRETURN_UNDEF;
 
     if ( error )
         croak("Usage: row_text(row, [startcol], [endcol])");
 
 
-    RETVAL = vt102_row_text(switches, row-1, startcol-1, endcol-1, 0);
+    RETVAL = vt102_row_text(switches, row, startcol, endcol, 0);
   OUTPUT:
     RETVAL
 
@@ -1063,11 +1086,15 @@ x(self)
     SV *self
   PREINIT:
     VT_SWITCHES *switches;
+    int x;
   CODE:
 
     _GET_SWITCHES(switches, self);
 
-    RETVAL = newSViv(switches->x + 1);
+    x = switches->x;
+    if ( !switches->zerobased ) ++x;
+
+    RETVAL = newSViv(x);
   OUTPUT:
     RETVAL
 
@@ -1076,11 +1103,15 @@ y(self)
     SV *self
   PREINIT:
     VT_SWITCHES *switches;
+    int y;
   CODE:
 
     _GET_SWITCHES(switches, self);
 
-    RETVAL = newSViv(switches->y + 1);
+    y = switches->y;
+    if ( !switches->zerobased ) ++y;
+
+    RETVAL = newSViv(y);
   OUTPUT:
     RETVAL
 
@@ -1182,16 +1213,22 @@ row_attr(self, row, ...)
     else {
         startcol = 1;
         endcol   = switches->num_cols;
+
+        if ( switches->zerobased ) {
+            --startcol; --endcol;
+        }
     }
 
     if ( error )
         croak("Usage: row_attr(row, [startcol], [endcol])");
 
-    vt102_clip_row(switches, &rownum,      0);
-    vt102_clip_col(switches, &startcol, 0);
-    vt102_clip_col(switches, &endcol,   0);
+    if ( !switches->zerobased ) {
+        --rownum;
+        --startcol;
+        --endcol;
+    }
 
-    ret = vt102_row_attr(switches, rownum-1, startcol-1, endcol-1);
+    ret = vt102_row_attr(switches, rownum, startcol, endcol);
 
     RETVAL =  ret;
   OUTPUT:
