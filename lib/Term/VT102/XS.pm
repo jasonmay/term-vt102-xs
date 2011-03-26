@@ -3,6 +3,7 @@ use strict;
 use warnings;
 
 our $VERSION = '0.01';
+use base 'Term::VT102';
 
 require XSLoader;
 XSLoader::load('Term::VT102::XS', $VERSION);
