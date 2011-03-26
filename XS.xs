@@ -689,6 +689,32 @@ SV *vt102_row_attr(VT_SWITCHES *switches, int row, int startcol, int endcol)
     return ret;
 }
 
+void vt102_option_check(VT_SWITCHES *switches, SV *option, SV *value, char *flagstr, I8 *flag, SV **ret)
+{
+    if ( strEQ(SvPV_nolen(option), flagstr) ) {
+        *ret = newSViv(*flag);
+        /* $one_or_zero = !!$value */
+        *flag = (I8) SvTRUE(value);
+    }
+}
+
+I8 *vt102_option_return(VT_SWITCHES *switches, SV *option)
+{
+    if ( strEQ(SvPV_nolen(option), "LINEWRAP") ) {
+        return &switches->options.linewrap;
+    }
+
+    if ( strEQ(SvPV_nolen(option), "LFTOCRLF") ) {
+        return &switches->options.lftocrlf;
+    }
+
+    if ( strEQ(SvPV_nolen(option), "IGNOREXOFF") ) {
+        return &switches->options.ignorexoff;
+    }
+
+    return NULL;
+}
+
 void vt102_init(VT_SWITCHES *switches)
 {
     int x, y;
@@ -720,7 +746,13 @@ void vt102_init(VT_SWITCHES *switches)
         }
     }
 
-    switches->xon = 1;
+    switches->xon    =
+    switches->cursor = 1;
+
+    switches->options.linewrap   =
+    switches->options.lftocrlf   =
+    switches->options.ignorexoff = 0;
+
 }
 
 SV* vt102_row_text(VT_SWITCHES *switches, int rownum, int plain)
@@ -1023,19 +1055,51 @@ row_attr(self, row, ...)
     RETVAL
 
 
-void option_set(self, option, value)
+SV*
+option_set(self, option, value)
     SV *self
     SV *option
     SV *value
+  PREINIT:
+    VT_SWITCHES *switches;
+    SV *ret;
   CODE:
-    /* TODO */
+    _GET_SWITCHES(switches, self);
 
-SV *option_read(self, option)
+    ret = NULL;
+    vt102_option_check(switches, option, value, "LINEWRAP",
+                       &switches->options.linewrap, &ret);
+
+    vt102_option_check(switches, option, value, "CRTOCRLF",
+                       &switches->options.linewrap, &ret);
+
+    vt102_option_check(switches, option, value, "IGNOREXOFF",
+                       &switches->options.linewrap, &ret);
+
+    if ( ret == NULL )
+        XSRETURN_UNDEF;
+
+    RETVAL = ret;
+  OUTPUT:
+    RETVAL
+
+SV*
+option_read(self, option)
     SV *self
     SV *option
+  PREINIT:
+    VT_SWITCHES *switches;
+    I8 *ret;
   CODE:
-    /* TODO */
-    RETVAL = newSViv(0);
+    _GET_SWITCHES(switches, self);
+
+    ret = vt102_option_return(switches, option);
+
+    if ( ret == NULL ) {
+        XSRETURN_UNDEF;
+    }
+
+    RETVAL = newSViv(*ret);
   OUTPUT:
     RETVAL
 
