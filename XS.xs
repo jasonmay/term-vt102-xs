@@ -680,7 +680,7 @@ SV *vt102_row_attr(VT_SWITCHES *switches, int row, int startcol, int endcol)
         SV *sv_pack;
         int idx = (col - startcol) * 2;
         VT_ATTR *attr =
-            &switches->rows[row-1]->cells[col].attr;
+            &switches->rows[row]->cells[col].attr;
 
         sv_pack = vt102_vt_attr_pack(*attr);
         pack = SvPV_nolen(sv_pack);
@@ -776,7 +776,7 @@ SV* vt102_row_text(VT_SWITCHES *switches, int rownum, int startcol, int endcol, 
         /*fprintf(stderr, "Text: %d, x=%d y=%d\r\n",
             retbuf[i], i, rownum-1);*/
 
-        cell = &switches->rows[rownum-1]->cells[i];
+        cell = &switches->rows[rownum]->cells[i];
 
         if (plain) {
             retbuf[i] = cell->value ? cell->value : ' ';
@@ -790,6 +790,26 @@ SV* vt102_row_text(VT_SWITCHES *switches, int rownum, int startcol, int endcol, 
     Safefree(retbuf);
 
     return ret;
+}
+
+void vt102_clip_row(VT_SWITCHES *switches, int *row_var, int zerobased)
+{
+    int offset = zerobased ? 0 : 1; /* hey it's readable ok */
+
+    if ( *row_var < offset )
+        *row_var = offset;
+    if ( *row_var >= switches->num_rows + offset )
+        *row_var = switches->num_rows + offset - 1;
+}
+
+void vt102_clip_col(VT_SWITCHES *switches, int *col_var, int zerobased)
+{
+    int offset = zerobased ? 0 : 1;
+
+    if ( *col_var < offset )
+        *col_var = offset;
+    if ( *col_var >= switches->num_cols + offset )
+        *col_var = switches->num_cols + offset - 1;
 }
 
 SV *vt102_attr_pack(int fg, int bg, int bo, int fa, int st, int ul, int bl, int rv)
@@ -925,25 +945,18 @@ row_plaintext(self, sv_rownum, ...)
         }
     }
     else {
-        startcol = 0;
-        endcol   = switches->num_cols - 1;
+        startcol = 1;
+        endcol   = switches->num_cols;
     }
 
     if ( error )
         croak("Usage: row_plaintext(row, [startcol], [endcol])");
 
+    if ( row      < 1 || row      > switches->num_rows ) XSRETURN_UNDEF;
+    if ( startcol < 1 || startcol > switches->num_cols ) XSRETURN_UNDEF;
+    if ( endcol   < 1 || endcol   > switches->num_cols ) XSRETURN_UNDEF;
 
-    if ( endcol >= switches->num_cols ) {
-        /* TODO perl-like warning */
-        endcol = switches->num_cols - 1;
-    }
-
-    if ( row >= switches->num_rows ) {
-        /* TODO perl-like warning */
-        row = switches->num_rows - 1;
-    }
-
-    RETVAL = vt102_row_text(switches, row, startcol, endcol, 1);
+    RETVAL = vt102_row_text(switches, row-1, startcol-1, endcol-1, 1);
   OUTPUT:
     RETVAL
 
@@ -979,15 +992,19 @@ row_text(self, sv_rownum, ...)
         }
     }
     else {
-        startcol = 0;
-        endcol   = switches->num_cols - 1;
+        startcol = 1;
+        endcol   = switches->num_cols;
     }
+
+    vt102_clip_row(switches, &row,      0);
+    vt102_clip_col(switches, &startcol, 0);
+    vt102_clip_col(switches, &endcol,   0);
 
     if ( error )
         croak("Usage: row_text(row, [startcol], [endcol])");
 
 
-    RETVAL = vt102_row_text(switches, row, startcol, endcol, 0);
+    RETVAL = vt102_row_text(switches, row-1, startcol-1, endcol-1, 0);
   OUTPUT:
     RETVAL
 
@@ -1126,7 +1143,7 @@ row_attr(self, row, ...)
     SV *row
   PREINIT:
     SV *ret;
-    int error, startcol, endcol;
+    int error, startcol, endcol, rownum;
     VT_SWITCHES *switches;
   CODE:
 
@@ -1135,6 +1152,8 @@ row_attr(self, row, ...)
     error = 0;
     if ( !SvIOK(row) )
         error = 1;
+
+    rownum = SvIV(row);
 
     if ( items != 2 && items != 4 ) {
         error = 1;
@@ -1151,14 +1170,18 @@ row_attr(self, row, ...)
         }
     }
     else {
-        startcol = 0;
-        endcol   = switches->num_cols - 1;
+        startcol = 1;
+        endcol   = switches->num_cols;
     }
 
     if ( error )
         croak("Usage: row_attr(row, [startcol], [endcol])");
 
-    ret = vt102_row_attr(switches, SvIV(row), startcol, endcol);
+    vt102_clip_row(switches, &rownum,      0);
+    vt102_clip_col(switches, &startcol, 0);
+    vt102_clip_col(switches, &endcol,   0);
+
+    ret = vt102_row_attr(switches, rownum-1, startcol-1, endcol-1);
 
     RETVAL =  ret;
   OUTPUT:
