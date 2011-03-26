@@ -197,7 +197,7 @@ void     vt102_clear_row(VT_SWITCHES *, int);
 void     vt102_reset_attr(VT_ATTR *);
 SV      *vt102_row_attr(VT_SWITCHES *, int, int, int);
 void     vt102_init(VT_SWITCHES *);
-SV      *vt102_row_text(VT_SWITCHES *, int, int);
+SV      *vt102_row_text(VT_SWITCHES *, int, int, int, int);
 SV      *vt102_attr_pack(int, int, int, int, int, int, int, int);
 SV      *vt102_vt_attr_pack(VT_ATTR);
 

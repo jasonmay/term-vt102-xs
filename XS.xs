@@ -755,7 +755,7 @@ void vt102_init(VT_SWITCHES *switches)
 
 }
 
-SV* vt102_row_text(VT_SWITCHES *switches, int rownum, int plain)
+SV* vt102_row_text(VT_SWITCHES *switches, int rownum, int startcol, int endcol, int plain)
 {
     SV          *ret;
     char        *retbuf;
@@ -763,14 +763,15 @@ SV* vt102_row_text(VT_SWITCHES *switches, int rownum, int plain)
 
     VT_CELL     *cell;
 
-    len = switches->num_cols;
+    len = endcol - startcol + 1;
     New(0, retbuf, len, char);
 
-    for (i = 0; i < len; ++i) {
-        cell = &switches->rows[rownum-1]->cells[i];
+    for (i = startcol; i <= endcol; ++i) {
 
-        /*printf("Text: %d, x=%d y=%d\n",
+        /*fprintf(stderr, "Text: %d, x=%d y=%d\r\n",
             retbuf[i], i, rownum-1);*/
+
+        cell = &switches->rows[rownum-1]->cells[i];
 
         if (plain) {
             retbuf[i] = cell->value ? cell->value : ' ';
@@ -888,48 +889,100 @@ process(self, buf)
     vt102_process(switches, buf);
 
 SV*
-row_plaintext(self, sv_rownum)
+row_plaintext(self, sv_rownum, ...)
     SV *self
     SV *sv_rownum
   PREINIT:
     VT_SWITCHES *switches;
-    int          rownum;
+    int          row, startcol, endcol, error;
   CODE:
+
     _GET_SWITCHES(switches, self);
 
+    error = 0;
     if ( !SvIOK(sv_rownum) )
-        croak("row_plaintext: Please provide a row# for the argument.");
+        error = 1;
 
-    rownum = SvIV(sv_rownum);
+    row = SvIV(sv_rownum);
 
-    if (rownum < 1 || rownum > switches->num_cols) {
-        croak("row_plaintext: Argument out of range!");
+    if ( items != 2 && items != 4 ) {
+        error = 1;
     }
 
-    RETVAL = vt102_row_text(switches, rownum, 1);
+    if ( items == 4 ) {
+
+        if ( !SvIOK( ST(2) ) || !SvIOK( ST(3) ) ) {
+            error = 1;
+        }
+        else {
+            startcol = SvIV( ST(2) );
+            endcol   = SvIV( ST(2) );
+        }
+    }
+    else {
+        startcol = 0;
+        endcol   = switches->num_cols - 1;
+    }
+
+    if ( error )
+        croak("Usage: row_plaintext(row, [startcol], [endcol])");
+
+
+    if ( endcol >= switches->num_cols ) {
+        /* TODO perl-like warning */
+        endcol = switches->num_cols - 1;
+    }
+
+    if ( row >= switches->num_rows ) {
+        /* TODO perl-like warning */
+        row = switches->num_rows - 1;
+    }
+
+    RETVAL = vt102_row_text(switches, row, startcol, endcol, 1);
   OUTPUT:
     RETVAL
 
 SV*
-row_text(self, sv_rownum)
+row_text(self, sv_rownum, ...)
     SV *self
     SV *sv_rownum
   PREINIT:
     VT_SWITCHES *switches;
-    int rownum;
+    int          row, startcol, endcol, error;
   CODE:
+
     _GET_SWITCHES(switches, self);
 
+    error = 0;
     if ( !SvIOK(sv_rownum) )
-        croak("row_plaintext: Please provide a row# for the argument.");
+        error = 1;
 
-    rownum = SvIV(sv_rownum);
+    row = SvIV(sv_rownum);
 
-    if (rownum < 1 || rownum > switches->num_cols) {
-        croak("row_plaintext: Argument out of range!");
+    if ( items != 2 && items != 4 ) {
+        error = 1;
     }
 
-    RETVAL = vt102_row_text(switches, rownum, 0);
+    if ( items == 4 ) {
+
+        if ( !SvIOK( ST(2) ) || !SvIOK( ST(3) ) ) {
+            error = 1;
+        }
+        else {
+            startcol = SvIV( ST(2) );
+            endcol   = SvIV( ST(2) );
+        }
+    }
+    else {
+        startcol = 0;
+        endcol   = switches->num_cols - 1;
+    }
+
+    if ( error )
+        croak("Usage: row_text(row, [startcol], [endcol])");
+
+
+    RETVAL = vt102_row_text(switches, row, startcol, endcol, 0);
   OUTPUT:
     RETVAL
 
