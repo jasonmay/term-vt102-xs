@@ -922,19 +922,14 @@ process(self, buf)
     vt102_process(self, buf);
 
 SV*
-row_plaintext(self, sv_rownum, ...)
+row_plaintext(self, row, ...)
     vt_switches_t *self
-    SV *sv_rownum
+    IV row
   PREINIT:
-    int          row, startcol, endcol, error;
+    int         startcol, endcol, error;
   CODE:
 
-
     error = 0;
-    if ( !SvIOK(sv_rownum) )
-        error = 1;
-
-    row = SvIV(sv_rownum);
 
     if ( items != 2 && items != 4 ) {
         error = 1;
