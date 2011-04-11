@@ -22,12 +22,12 @@
 
 /* functions */
 
-VT_CELL *vt102_current_cell(VT_SWITCHES *switches)
+VT_CELL *vt102_current_cell(vt_switches_t *self)
 {
-    int x = switches->x,
-        y = switches->y;
+    int x = self->x,
+        y = self->y;
 
-    return &switches->rows[y]->cells[x];
+    return &self->rows[y]->cells[x];
 }
 
 char vt102_is_csi_terminator(char c)
@@ -81,13 +81,13 @@ int vt102_has_semicolon(char *s)
     return 0;
 }
 
-void vt102_process_SGR(VT_SWITCHES *switches)
+void vt102_process_SGR(vt_switches_t *self)
 {
-    char *buf = switches->seq_buf;
+    char *buf = self->seq_buf;
 
     /* \e[m */
     if (!*buf)
-        vt102_reset_attr(&switches->attr);
+        vt102_reset_attr(&self->attr);
 
     while (*buf) {
         char next_char = *(buf + 1);
@@ -95,66 +95,66 @@ void vt102_process_SGR(VT_SWITCHES *switches)
         /* 30-37 */
         if ( *buf == '3' && next_char >= '0' && next_char <= '7' ) {
             if ( *(buf + 2) == ';' || *(buf + 2) == '\0' ) {
-                switches->attr.fg = next_char - '0';
+                self->attr.fg = next_char - '0';
                 buf += 2;
             }
         }
         else if ( strnEQ(buf, "38", 2) ) {
             if ( *(buf + 2) == ';' || *(buf + 2) == '\0' ) {
-                switches->attr.ul = 1;
-                switches->attr.fg = 7;
+                self->attr.ul = 1;
+                self->attr.fg = 7;
             }
         }
         else if ( strnEQ(buf, "39", 2) ) {
             if ( *(buf + 2) == ';' || *(buf + 2) == '\0' ) {
-                switches->attr.ul = 0;
-                switches->attr.fg = 7;
+                self->attr.ul = 0;
+                self->attr.fg = 7;
             }
         }
         else if ( *buf == '4' && next_char >= '0' && next_char <= '7' ) {
             if ( *(buf + 2) == ';' || *(buf + 2) == '\0' ) {
-                switches->attr.bg = next_char - '0';
+                self->attr.bg = next_char - '0';
                 buf += 2;
             }
         }
         else if ( strnEQ(buf, "49", 2) ) {
             if ( *(buf + 2) == ';' || *(buf + 2) == '\0' ) {
-                switches->attr.bg = 0;
+                self->attr.bg = 0;
             }
         }
         else if ( *buf == '0' ) {
             if ( next_char == ';' || next_char == '\0' ) {
-                vt102_reset_attr(&switches->attr);
+                vt102_reset_attr(&self->attr);
             }
             ++buf;
         }
         else if ( *buf == '1' ) {
             if ( next_char == ';' || next_char == '\0' ) {
-                switches->attr.bo = 1;
+                self->attr.bo = 1;
             }
             ++buf;
         }
         else if ( *buf == '2' ) {
             if ( next_char == ';' || next_char == '\0' ) {
-                switches->attr.bo = 0;
-                switches->attr.fa = 1;
+                self->attr.bo = 0;
+                self->attr.fa = 1;
                 ++buf;
             }
             else if ( *(buf + 2) == ';' || *(buf + 2) == '\0' ) {
                 switch (next_char) {
                     case '1':
                     case '2':
-                        switches->attr.bo = 0;
-                        switches->attr.fa = 0;
+                        self->attr.bo = 0;
+                        self->attr.fa = 0;
                         break;
                     case '4':
-                        switches->attr.ul = 0;
+                        self->attr.ul = 0;
                         break;
                     case '5':
-                        switches->attr.bl = 0;
+                        self->attr.bl = 0;
                         break;
                     case '7':
-                        switches->attr.rv = 0;
+                        self->attr.rv = 0;
                         break;
                     default:
                         buf -= 2;
@@ -165,19 +165,19 @@ void vt102_process_SGR(VT_SWITCHES *switches)
         }
         else if ( *buf == '4' ) {
             if ( next_char == ';' || next_char == '\0' ) {
-                switches->attr.ul = 1;
+                self->attr.ul = 1;
                 ++buf;
             }
         }
         else if ( *buf == '5' ) {
             if ( next_char == ';' || next_char == '\0' ) {
-                switches->attr.bl = 1;
+                self->attr.bl = 1;
                 ++buf;
             }
         }
         else if ( *buf == '7' ) {
             if ( next_char == ';' || next_char == '\0' ) {
-                switches->attr.rv = 1;
+                self->attr.rv = 1;
                 ++buf;
             }
         }
@@ -188,9 +188,9 @@ void vt102_process_SGR(VT_SWITCHES *switches)
 
 }
 
-void vt102_process_CUP(VT_SWITCHES *switches)
+void vt102_process_CUP(vt_switches_t *self)
 {
-    char *buf = switches->seq_buf;
+    char *buf = self->seq_buf;
 
     int to_x = 0, to_y = 0;
 
@@ -225,8 +225,8 @@ void vt102_process_CUP(VT_SWITCHES *switches)
         to_x = SvIV(sv_num) - 1;
     }
 
-    switches->x = to_x;
-    switches->y = to_y;
+    self->x = to_x;
+    self->y = to_y;
 }
 
 int vt102_get_number_from_string(char *buf) {
@@ -247,50 +247,50 @@ int vt102_get_number_from_string(char *buf) {
     return ret;
 }
 
-void vt102_process_CUU(VT_SWITCHES *switches)
+void vt102_process_CUU(vt_switches_t *self)
 {
-    int i, offset = vt102_get_number_from_string(switches->seq_buf);
+    int i, offset = vt102_get_number_from_string(self->seq_buf);
     if ( !offset ) offset = 1;
 
     for (i = 0; i < offset; ++i) {
         /* INEFFICIENT!! - TODO shift all rows around at one time */
-        vt102_dec_y(switches);
+        vt102_dec_y(self);
     }
 
 }
 
-void vt102_process_CUD(VT_SWITCHES *switches)
+void vt102_process_CUD(vt_switches_t *self)
 {
-    int i, offset = vt102_get_number_from_string(switches->seq_buf);
+    int i, offset = vt102_get_number_from_string(self->seq_buf);
     if ( !offset ) offset = 1;
 
     for (i = 0; i < offset; ++i) {
         /* INEFFICIENT!! - TODO shift all rows around at one time */
-        vt102_inc_y(switches);
+        vt102_inc_y(self);
     }
 
 }
 
-void vt102_process_CUB(VT_SWITCHES *switches)
+void vt102_process_CUB(vt_switches_t *self)
 {
-    int i, offset = vt102_get_number_from_string(switches->seq_buf);
+    int i, offset = vt102_get_number_from_string(self->seq_buf);
     if ( !offset ) offset = 1;
 
-    switches->x -= offset;
+    self->x -= offset;
 
-    if ( switches->x < 0 )
-        switches->x = 0;
+    if ( self->x < 0 )
+        self->x = 0;
 }
 
-void vt102_process_CUF(VT_SWITCHES *switches)
+void vt102_process_CUF(vt_switches_t *self)
 {
-    int i, offset = vt102_get_number_from_string(switches->seq_buf);
+    int i, offset = vt102_get_number_from_string(self->seq_buf);
     if ( !offset ) offset = 1;
 
-    switches->x += offset;
+    self->x += offset;
 
-    if ( switches->x >= switches->num_cols )
-        switches->x = switches->num_cols - 1;
+    if ( self->x >= self->num_cols )
+        self->x = self->num_cols - 1;
 }
 
 void vt102_clear_cell(VT_CELL *cell)
@@ -299,99 +299,99 @@ void vt102_clear_cell(VT_CELL *cell)
     vt102_reset_attr(&cell->attr);
 }
 
-void vt102_process_ECH(VT_SWITCHES *switches)
+void vt102_process_ECH(vt_switches_t *self)
 {
-    int col, end, chars = vt102_get_number_from_string(switches->seq_buf);
+    int col, end, chars = vt102_get_number_from_string(self->seq_buf);
     if ( !chars ) chars = 1;
 
-    end = switches->x + chars;
+    end = self->x + chars;
 
-    if ( end >= switches->num_cols ) end = switches->num_cols - 1;
+    if ( end >= self->num_cols ) end = self->num_cols - 1;
 
-    for (col = switches->x;
-         col < switches->x + chars && col < switches->num_cols;
+    for (col = self->x;
+         col < self->x + chars && col < self->num_cols;
          ++col) {
 
-        switches->rows[switches->y]->cells[col].value = '\0';
-        vt102_reset_attr(&switches->rows[switches->y]->cells[col].attr);
+        self->rows[self->y]->cells[col].value = '\0';
+        vt102_reset_attr(&self->rows[self->y]->cells[col].attr);
     }
 }
 
-void vt102_clear_row(VT_SWITCHES *switches, int row)
+void vt102_clear_row(vt_switches_t *self, int row)
 {
     int col;
-    VT_ROW *s_row = switches->rows[row];
+    VT_ROW *s_row = self->rows[row];
 
-    for (col = 0; col < switches->num_cols; ++col) {
+    for (col = 0; col < self->num_cols; ++col) {
         vt102_clear_cell(&s_row->cells[col]);
     }
 }
 
-void vt102_process_EL(VT_SWITCHES *switches)
+void vt102_process_EL(vt_switches_t *self)
 {
-    int row, col, num = vt102_get_number_from_string(switches->seq_buf);
+    int row, col, num = vt102_get_number_from_string(self->seq_buf);
 
-    if ( !num && !switches->x && !switches->y )
+    if ( !num && !self->x && !self->y )
         num = 2;
 
     /* cursor to end */
     switch (num) {
         case 0:
-            for (col = switches->x; col < switches->num_cols; ++col) {
-                vt102_clear_cell( &switches->rows[switches->y]->cells[col] );
+            for (col = self->x; col < self->num_cols; ++col) {
+                vt102_clear_cell( &self->rows[self->y]->cells[col] );
             }
             break;
 
         case 1:
-            for (col = 0; col <= switches->x; ++col) {
-                vt102_clear_cell( &switches->rows[switches->y]->cells[col] );
+            for (col = 0; col <= self->x; ++col) {
+                vt102_clear_cell( &self->rows[self->y]->cells[col] );
             }
             break;
 
         default:
-            vt102_clear_row(switches, switches->y);
+            vt102_clear_row(self, self->y);
             break;
     }
 }
 
-void vt102_process_ED(VT_SWITCHES *switches)
+void vt102_process_ED(vt_switches_t *self)
 {
-    int row, col, num = vt102_get_number_from_string(switches->seq_buf);
+    int row, col, num = vt102_get_number_from_string(self->seq_buf);
 
-    if ( !num && !switches->x && !switches->y )
+    if ( !num && !self->x && !self->y )
         num = 2;
 
     /* cursor to end */
     switch (num) {
         case 0:
-            for (col = switches->x; col < switches->num_cols; ++col) {
-                vt102_clear_cell( &switches->rows[switches->y]->cells[col] );
+            for (col = self->x; col < self->num_cols; ++col) {
+                vt102_clear_cell( &self->rows[self->y]->cells[col] );
             }
 
-            for (row = switches->y + 1; row < switches->num_rows; ++row) {
-                vt102_clear_row( switches, row );
+            for (row = self->y + 1; row < self->num_rows; ++row) {
+                vt102_clear_row( self, row );
             }
             break;
 
         case 1:
-            for (col = 0; col <= switches->x; ++col) {
-                vt102_clear_cell( &switches->rows[switches->y]->cells[col] );
+            for (col = 0; col <= self->x; ++col) {
+                vt102_clear_cell( &self->rows[self->y]->cells[col] );
             }
 
-            for (row = 0; row < switches->y; ++row) {
-                vt102_clear_row( switches, row );
+            for (row = 0; row < self->y; ++row) {
+                vt102_clear_row( self, row );
             }
             break;
 
         default:
-            for (row = 0; row < switches->num_rows; ++row) {
-                vt102_clear_row( switches, row );
+            for (row = 0; row < self->num_rows; ++row) {
+                vt102_clear_row( self, row );
             }
             break;
     }
 }
 
-void vt102_process_csi(VT_SWITCHES *switches, char **buf)
+void vt102_process_csi(vt_switches_t *self, char **buf)
 {
     int i, terminated = 0;
     char c;
@@ -403,46 +403,46 @@ void vt102_process_csi(VT_SWITCHES *switches, char **buf)
             break;
 
         if ( vt102_is_csi_terminator(c) ) {
-            switches->seq_buf[i] = '\0';
+            self->seq_buf[i] = '\0';
             (*buf) += i + 1;
             terminated = 1;
             switch (c) {
                 case CSI_SGR:
-                    vt102_process_SGR(switches);
+                    vt102_process_SGR(self);
                   /*  fprintf(stderr, "THE COLORS, DUKE! THE COLORS! %s\n",
-                        switches->seq_buf); */
+                        self->seq_buf); */
 
                     break;
                 case CSI_CUP:
-                    vt102_process_CUP(switches);
+                    vt102_process_CUP(self);
                     break;
 
                 case CSI_CUU:
-                    vt102_process_CUU(switches);
+                    vt102_process_CUU(self);
                     break;
 
                 case CSI_CUD:
-                    vt102_process_CUD(switches);
+                    vt102_process_CUD(self);
                     break;
 
                 case CSI_CUB:
-                    vt102_process_CUB(switches);
+                    vt102_process_CUB(self);
                     break;
 
                 case CSI_CUF:
-                    vt102_process_CUF(switches);
+                    vt102_process_CUF(self);
                     break;
 
                 case CSI_ECH:
-                    vt102_process_ECH(switches);
+                    vt102_process_ECH(self);
                     break;
 
                 case CSI_EL:
-                    vt102_process_EL(switches);
+                    vt102_process_EL(self);
                     break;
 
                 case CSI_ED:
-                    vt102_process_ED(switches);
+                    vt102_process_ED(self);
                     break;
 
                 default:
@@ -452,43 +452,43 @@ void vt102_process_csi(VT_SWITCHES *switches, char **buf)
             break;
         }
         else {
-            switches->seq_buf[i] = c;
+            self->seq_buf[i] = c;
         }
     }
 }
 
-void vt102_process_ctl(VT_SWITCHES *switches, char **buf)
+void vt102_process_ctl(vt_switches_t *self, char **buf)
 {
     char c = **buf;
     (*buf)++;
 
-    if ( switches->xon == 0 )
+    if ( self->xon == 0 )
         return;
 
     switch (c) {
         case CHAR_CTL_BS:
-            if ( switches->x > 0 ) --switches->x;
+            if ( self->x > 0 ) --self->x;
             break;
 
         case CHAR_CTL_CR:
-            switches->x = 0;
+            self->x = 0;
             break;
 
         case CHAR_CTL_LF:
-            vt102_inc_y(switches);
-            if (switches->options.lftocrlf)
-                switches->x = 0;
+            vt102_inc_y(self);
+            if (self->options.lftocrlf)
+                self->x = 0;
             break;
 
         case CHAR_CTL_HT:
-            if ( switches->x < switches->num_cols-1 )
-                ++switches->x;
+            if ( self->x < self->num_cols-1 )
+                ++self->x;
 
-            while (switches->x < switches->num_cols-1) {
-                if ( switches->tabstops[switches->x] )
+            while (self->x < self->num_cols-1) {
+                if ( self->tabstops[self->x] )
                     break;
 
-                ++switches->x;
+                ++self->x;
             }
             break;
 
@@ -496,11 +496,11 @@ void vt102_process_ctl(VT_SWITCHES *switches, char **buf)
             /* our beloved \e[...# */
             if ( **buf == '[' ) {
                 ++(*buf);
-                vt102_process_csi(switches, buf);
+                vt102_process_csi(self, buf);
             }
             if ( **buf == 'M' ) {
                 ++(*buf);
-                vt102_dec_y(switches);
+                vt102_dec_y(self);
             }
             break;
         default:
@@ -523,40 +523,40 @@ void vt102_copy_attr(VT_ATTR *src, VT_ATTR *dest) {
     dest->rv = src->rv;
 }
 
-void vt102_process_text(VT_SWITCHES *switches, char **buf)
+void vt102_process_text(vt_switches_t *self, char **buf)
 {
     VT_CELL     *cell;
 
-    if ( switches->x >= switches->num_cols ) {
-        if ( switches->options.linewrap ) {
-            vt102_inc_y(switches);
-            switches->x = 0;
+    if ( self->x >= self->num_cols ) {
+        if ( self->options.linewrap ) {
+            vt102_inc_y(self);
+            self->x = 0;
         }
         else {
             return;
         }
     }
 
-    cell        = &switches->rows[switches->y]->cells[switches->x];
+    cell        = &self->rows[self->y]->cells[self->x];
     cell->value = **buf;
     cell->used  = 1;
-    vt102_copy_attr(&switches->attr, &cell->attr);
+    vt102_copy_attr(&self->attr, &cell->attr);
 
-    switches->x++;
+    self->x++;
 
     return;
 }
 
-void vt102_process(VT_SWITCHES *switches, SV *sv_in)
+void vt102_process(vt_switches_t *self, SV *sv_in)
 {
     char *buf = SvPV_nolen(sv_in);
 
     while (*buf != '\0') {
         if ( _IS_CTL( *buf ) ) {
-            vt102_process_ctl(switches, &buf);
+            vt102_process_ctl(self, &buf);
         }
         else if ( *buf != 127 ) {
-            vt102_process_text(switches, &buf);
+            vt102_process_text(self, &buf);
             ++buf;
         }
         else {
@@ -568,56 +568,56 @@ void vt102_process(VT_SWITCHES *switches, SV *sv_in)
     return;
 }
 
-void vt102_dec_y(VT_SWITCHES *switches) {
+void vt102_dec_y(vt_switches_t *self) {
     int row, col;
-    int end_index = switches->num_rows - 1;
+    int end_index = self->num_rows - 1;
     VT_ROW *last_row;
 
-    switches->y--;
+    self->y--;
 
-    if ( switches->y < 0 ) {
-        switches->y = 0;
+    if ( self->y < 0 ) {
+        self->y = 0;
 
-        last_row = switches->rows[end_index];
+        last_row = self->rows[end_index];
 
         /* move every row pointer up one */
         for (row = end_index - 1; row >= 0; --row) {
-            switches->rows[row + 1] = switches->rows[row];
+            self->rows[row + 1] = self->rows[row];
         }
-        switches->rows[0] = last_row;
-        for (col = 0; col < switches->num_cols; ++col) {
-            vt102_reset_attr(&switches->rows[0]->cells[col].attr);
+        self->rows[0] = last_row;
+        for (col = 0; col < self->num_cols; ++col) {
+            vt102_reset_attr(&self->rows[0]->cells[col].attr);
         }
     }
 }
 
-void vt102_inc_y(VT_SWITCHES *switches) {
+void vt102_inc_y(vt_switches_t *self) {
     int row, col;
-    int end_index = switches->num_rows - 1;
+    int end_index = self->num_rows - 1;
     VT_ROW *first_row;
 
-    switches->y++;
+    self->y++;
 
-    if ( switches->y >= switches->num_rows ) {
-        switches->y = end_index;
+    if ( self->y >= self->num_rows ) {
+        self->y = end_index;
 
         /* row 0 will be overwritten, store it 
          * to use for the last row */
-        first_row = switches->rows[0];
+        first_row = self->rows[0];
 
         /* move every row pointer up one */
         for (row = 0; row < end_index; ++row) {
-            switches->rows[row] = switches->rows[row + 1];
+            self->rows[row] = self->rows[row + 1];
         }
-        switches->rows[end_index] = first_row;
-        for (col = 0; col < switches->num_cols; ++col) {
-            vt102_reset_attr(&switches->rows[end_index]->cells[col].attr);
-            switches->rows[end_index]->cells[col].value = '\0';
+        self->rows[end_index] = first_row;
+        for (col = 0; col < self->num_cols; ++col) {
+            vt102_reset_attr(&self->rows[end_index]->cells[col].attr);
+            self->rows[end_index]->cells[col].value = '\0';
         }
     }
 }
 
-void vt102_check_rows_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches)
+void vt102_check_rows_param(SV *sv_param, SV *sv_value, vt_switches_t *self)
 {
     char *param = SvPV_nolen( sv_param );
     int value;
@@ -627,7 +627,7 @@ void vt102_check_rows_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches)
             value = SvIV(sv_value);
 
             if ( value > 0 )
-                switches->num_rows = value;
+                self->num_rows = value;
         }
         else {
             croak("rows => INTEGER, ...");
@@ -635,7 +635,7 @@ void vt102_check_rows_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches)
     };
 }
 
-void vt102_check_cols_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches)
+void vt102_check_cols_param(SV *sv_param, SV *sv_value, vt_switches_t *self)
 {
     char *param = SvPV_nolen( sv_param );
     int value;
@@ -645,7 +645,7 @@ void vt102_check_cols_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches)
             value = SvIV(sv_value);
 
             if ( value > 0 )
-                switches->num_cols = value;
+                self->num_cols = value;
         }
         else {
             croak("cols => INTEGER, ...");
@@ -653,12 +653,12 @@ void vt102_check_cols_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches)
     };
 }
 
-void vt102_check_zerobased_param(SV *sv_param, SV *sv_value, VT_SWITCHES *switches)
+void vt102_check_zerobased_param(SV *sv_param, SV *sv_value, vt_switches_t *self)
 {
     char *param = SvPV_nolen( sv_param );
 
     if ( strEQ(param, "zerobased") ) {
-        switches->zerobased = (I8) SvTRUE(sv_value);
+        self->zerobased = (I8) SvTRUE(sv_value);
     };
 }
 
@@ -674,7 +674,7 @@ void vt102_reset_attr(VT_ATTR *attr)
 
 }
 
-SV *vt102_row_attr(VT_SWITCHES *switches, int row, int startcol, int endcol)
+SV *vt102_row_attr(vt_switches_t *self, int row, int startcol, int endcol)
 {
     int len = (endcol - startcol + 1) * 2;
     int col;
@@ -689,7 +689,7 @@ SV *vt102_row_attr(VT_SWITCHES *switches, int row, int startcol, int endcol)
         SV *sv_pack;
         int idx = (col - startcol) * 2;
         VT_ATTR *attr =
-            &switches->rows[row]->cells[col].attr;
+            &self->rows[row]->cells[col].attr;
 
         sv_pack = vt102_vt_attr_pack(*attr);
         pack = SvPV_nolen(sv_pack);
@@ -703,7 +703,7 @@ SV *vt102_row_attr(VT_SWITCHES *switches, int row, int startcol, int endcol)
     return ret;
 }
 
-void vt102_option_check(VT_SWITCHES *switches, SV *option, SV *value, char *flagstr, I8 *flag, SV **ret)
+void vt102_option_check(vt_switches_t *self, SV *option, SV *value, char *flagstr, I8 *flag, SV **ret)
 {
     if ( strEQ(SvPV_nolen(option), flagstr) ) {
         *ret = newSViv(*flag);
@@ -712,47 +712,47 @@ void vt102_option_check(VT_SWITCHES *switches, SV *option, SV *value, char *flag
     }
 }
 
-I8 *vt102_option_return(VT_SWITCHES *switches, SV *option)
+I8 *vt102_option_return(vt_switches_t *self, SV *option)
 {
     if ( strEQ(SvPV_nolen(option), "LINEWRAP") ) {
-        return &switches->options.linewrap;
+        return &self->options.linewrap;
     }
 
     if ( strEQ(SvPV_nolen(option), "LFTOCRLF") ) {
-        return &switches->options.lftocrlf;
+        return &self->options.lftocrlf;
     }
 
     if ( strEQ(SvPV_nolen(option), "IGNOREXOFF") ) {
-        return &switches->options.ignorexoff;
+        return &self->options.ignorexoff;
     }
 
     return NULL;
 }
 
-void vt102_init(VT_SWITCHES *switches)
+void vt102_init(vt_switches_t *self)
 {
     int x, y;
     VT_CELL *cur_cell;
 
     /* allocate rows */
-    New(0, switches->rows,     switches->num_rows, VT_ROW*);
-    New(0, switches->tabstops, switches->num_cols, int);
+    New(0, self->rows,     self->num_rows, VT_ROW*);
+    New(0, self->tabstops, self->num_cols, int);
 
     /* establish tabstops 1000000010000000... */
-    for (x = 0; x < switches->num_cols; ++x) {
-        switches->tabstops[x] = (x % 8 == 0);
+    for (x = 0; x < self->num_cols; ++x) {
+        self->tabstops[x] = (x % 8 == 0);
     }
 
-    vt102_reset_attr(&switches->attr);
+    vt102_reset_attr(&self->attr);
 
-    for (y = 0; y < switches->num_rows; ++y) {
-        New(0, switches->rows[y], 1, VT_ROW);
+    for (y = 0; y < self->num_rows; ++y) {
+        New(0, self->rows[y], 1, VT_ROW);
 
         /* allocate cells for row y */
-        New(0, switches->rows[y]->cells, switches->num_cols, VT_CELL);
+        New(0, self->rows[y]->cells, self->num_cols, VT_CELL);
 
-        for (x = 0; x < switches->num_cols; ++x) {
-            cur_cell = &switches->rows[y]->cells[x];
+        for (x = 0; x < self->num_cols; ++x) {
+            cur_cell = &self->rows[y]->cells[x];
 
             vt102_reset_attr(&cur_cell->attr);
             cur_cell->used = 0;
@@ -760,16 +760,16 @@ void vt102_init(VT_SWITCHES *switches)
         }
     }
 
-    switches->xon    =
-    switches->cursor = 1;
+    self->xon    =
+    self->cursor = 1;
 
-    switches->options.linewrap   =
-    switches->options.lftocrlf   =
-    switches->options.ignorexoff = 0;
+    self->options.linewrap   =
+    self->options.lftocrlf   =
+    self->options.ignorexoff = 0;
 
 }
 
-SV* vt102_row_text(VT_SWITCHES *switches, int rownum, int startcol, int endcol, int plain)
+SV* vt102_row_text(vt_switches_t *self, int rownum, int startcol, int endcol, int plain)
 {
     SV          *ret;
     char        *retbuf;
@@ -785,7 +785,7 @@ SV* vt102_row_text(VT_SWITCHES *switches, int rownum, int startcol, int endcol, 
         /*fprintf(stderr, "Text: %d, x=%d y=%d\r\n",
             retbuf[i], i, rownum-1);*/
 
-        cell = &switches->rows[rownum]->cells[i];
+        cell = &self->rows[rownum]->cells[i];
 
         if (plain) {
             retbuf[i] = cell->value ? cell->value : ' ';
@@ -801,24 +801,24 @@ SV* vt102_row_text(VT_SWITCHES *switches, int rownum, int startcol, int endcol, 
     return ret;
 }
 
-void vt102_clip_row(VT_SWITCHES *switches, int *row_var, int zerobased)
+void vt102_clip_row(vt_switches_t *self, int *row_var, int zerobased)
 {
     int offset = zerobased ? 0 : 1; /* hey it's readable ok */
 
     if ( *row_var < offset )
         *row_var = offset;
-    if ( *row_var >= switches->num_rows + offset )
-        *row_var = switches->num_rows + offset - 1;
+    if ( *row_var >= self->num_rows + offset )
+        *row_var = self->num_rows + offset - 1;
 }
 
-void vt102_clip_col(VT_SWITCHES *switches, int *col_var, int zerobased)
+void vt102_clip_col(vt_switches_t *self, int *col_var, int zerobased)
 {
     int offset = zerobased ? 0 : 1;
 
     if ( *col_var < offset )
         *col_var = offset;
-    if ( *col_var >= switches->num_cols + offset )
-        *col_var = switches->num_cols + offset - 1;
+    if ( *col_var >= self->num_cols + offset )
+        *col_var = self->num_cols + offset - 1;
 }
 
 SV *vt102_attr_pack(int fg, int bg, int bo, int fa, int st, int ul, int bl, int rv)
@@ -866,18 +866,18 @@ SV*
 new(class, ...)
     SV* class
   PREINIT:
-        SV* self;
-        VT_SWITCHES *switches;
+        vt_switches_t* self;
+        SV* instance;
         SV* iv_addr;
         int i;
   CODE:
 
-    New(0, switches, 1, VT_SWITCHES);
+    New(0, self, 1, vt_switches_t);
 
-    switches->num_cols        = DEFAULT_COLS;
-    switches->num_rows        = DEFAULT_ROWS;
-    switches->x = switches->y = 0;
-    switches->zerobased       = 0;
+    self->num_cols        = DEFAULT_COLS;
+    self->num_rows        = DEFAULT_ROWS;
+    self->x = self->y = 0;
+    self->zerobased       = 0;
 
     if (items > 1) {
         if (items % 2 == 0) {
@@ -887,53 +887,48 @@ new(class, ...)
         for (i = 1; i < items; i += 2) {
             if ( !SvPOK( ST(i) ) ) croak("Invalid constructor parameter");
 
-            vt102_check_rows_param( ST(i), ST(i+1), switches );
-            vt102_check_cols_param( ST(i), ST(i+1), switches );
-            vt102_check_zerobased_param( ST(i), ST(i+1), switches );
+            vt102_check_rows_param( ST(i), ST(i+1), self );
+            vt102_check_cols_param( ST(i), ST(i+1), self );
+            vt102_check_zerobased_param( ST(i), ST(i+1), self );
         }
     }
 
     /* $iv_addr = 0xDEADBEEF in an IV */
-    iv_addr = newSViv( PTR2IV(switches) );
+    iv_addr = newSViv( PTR2IV(self) );
 
     /* my $self = \$iv_addr */
-    self = newRV_noinc(iv_addr);
+    instance = newRV_noinc(iv_addr);
 
     /* bless($iv_addr, $class) */
-    sv_bless(self, gv_stashsv(class, 0));
+    sv_bless(instance, gv_stashsv(class, 0));
 
     /* allocate all my shit */
-    vt102_init(switches);
+    vt102_init(self);
 
     /* return $self */
-    RETVAL = self;
+    RETVAL = instance;
   OUTPUT:
     RETVAL
 
 void
 process(self, buf)
-    SV *self
+    vt_switches_t *self
     SV *buf
-  PREINIT:
-    VT_SWITCHES *switches;
   CODE:
     if (!SvPOK(buf))
         croak("Argument must be a string");
 
-    _GET_SWITCHES(switches, self);
 
-    vt102_process(switches, buf);
+    vt102_process(self, buf);
 
 SV*
 row_plaintext(self, sv_rownum, ...)
-    SV *self
+    vt_switches_t *self
     SV *sv_rownum
   PREINIT:
-    VT_SWITCHES *switches;
     int          row, startcol, endcol, error;
   CODE:
 
-    _GET_SWITCHES(switches, self);
 
     error = 0;
     if ( !SvIOK(sv_rownum) )
@@ -957,9 +952,9 @@ row_plaintext(self, sv_rownum, ...)
     }
     else {
         startcol = 1;
-        endcol   = switches->num_cols;
+        endcol   = self->num_cols;
 
-        if ( switches->zerobased ) {
+        if ( self->zerobased ) {
             --startcol; --endcol;
         }
     }
@@ -967,30 +962,28 @@ row_plaintext(self, sv_rownum, ...)
     if ( error )
         croak("Usage: row_plaintext(row, [startcol], [endcol])");
 
-    if ( !switches->zerobased ) {
+    if ( !self->zerobased ) {
         --row;
         --startcol;
         --endcol;
     }
 
-    if ( row      < 0 || row      >= switches->num_rows ) XSRETURN_UNDEF;
-    if ( startcol < 0 || startcol >= switches->num_cols ) XSRETURN_UNDEF;
-    if ( endcol   < 0 || endcol   >= switches->num_cols ) XSRETURN_UNDEF;
+    if ( row      < 0 || row      >= self->num_rows ) XSRETURN_UNDEF;
+    if ( startcol < 0 || startcol >= self->num_cols ) XSRETURN_UNDEF;
+    if ( endcol   < 0 || endcol   >= self->num_cols ) XSRETURN_UNDEF;
 
-    RETVAL = vt102_row_text(switches, row, startcol, endcol, 1);
+    RETVAL = vt102_row_text(self, row, startcol, endcol, 1);
   OUTPUT:
     RETVAL
 
 SV*
 row_text(self, sv_rownum, ...)
-    SV *self
+    vt_switches_t *self
     SV *sv_rownum
   PREINIT:
-    VT_SWITCHES *switches;
     int          row, startcol, endcol, error;
   CODE:
 
-    _GET_SWITCHES(switches, self);
 
     error = 0;
     if ( !SvIOK(sv_rownum) )
@@ -1015,84 +1008,73 @@ row_text(self, sv_rownum, ...)
     }
     else {
         startcol = 1;
-        endcol   = switches->num_cols;
+        endcol   = self->num_cols;
 
-        if ( switches->zerobased ) {
+        if ( self->zerobased ) {
             --startcol; --endcol;
         }
     }
 
-    if ( !switches->zerobased ) {
+    if ( !self->zerobased ) {
         --row;
         --startcol;
         --endcol;
     }
 
 
-    if ( row      < 0 || row      >= switches->num_rows ) XSRETURN_UNDEF;
-    if ( startcol < 0 || startcol >= switches->num_cols ) XSRETURN_UNDEF;
-    if ( endcol   < 0 || endcol   >= switches->num_cols ) XSRETURN_UNDEF;
+    if ( row      < 0 || row      >= self->num_rows ) XSRETURN_UNDEF;
+    if ( startcol < 0 || startcol >= self->num_cols ) XSRETURN_UNDEF;
+    if ( endcol   < 0 || endcol   >= self->num_cols ) XSRETURN_UNDEF;
 
     if ( error )
         croak("Usage: row_text(row, [startcol], [endcol])");
 
 
-    RETVAL = vt102_row_text(switches, row, startcol, endcol, 0);
+    RETVAL = vt102_row_text(self, row, startcol, endcol, 0);
   OUTPUT:
     RETVAL
 
 SV*
 size(self)
-    SV *self
-  PREINIT:
-    VT_SWITCHES *switches;
+    vt_switches_t *self
   PPCODE:
 
-    _GET_SWITCHES(switches, self);
 
     EXTEND(SP, 2);
 
-    mPUSHs( newSViv(switches->num_cols) );
-    mPUSHs( newSViv(switches->num_rows) );
+    mPUSHs( newSViv(self->num_cols) );
+    mPUSHs( newSViv(self->num_rows) );
 
 SV*
 rows(self)
-    SV *self
-  PREINIT:
-    VT_SWITCHES *switches;
+    vt_switches_t *self
   CODE:
 
-    _GET_SWITCHES(switches, self);
 
-    RETVAL = newSViv(switches->num_rows);
+    RETVAL = newSViv(self->num_rows);
   OUTPUT:
     RETVAL
 
 SV*
 cols(self)
-    SV *self
-  PREINIT:
-    VT_SWITCHES *switches;
+    vt_switches_t *self
   CODE:
 
-    _GET_SWITCHES(switches, self);
 
-    RETVAL = newSViv(switches->num_cols);
+    RETVAL = newSViv(self->num_cols);
   OUTPUT:
     RETVAL
 
 SV*
 x(self)
-    SV *self
+    vt_switches_t *self
   PREINIT:
-    VT_SWITCHES *switches;
     int x;
   CODE:
 
-    _GET_SWITCHES(switches, self);
 
-    x = switches->x;
-    if ( !switches->zerobased ) ++x;
+    x = self->x;
+    if ( !self->zerobased ) ++x;
 
     RETVAL = newSViv(x);
   OUTPUT:
@@ -1100,16 +1082,14 @@ x(self)
 
 SV*
 y(self)
-    SV *self
+    vt_switches_t *self
   PREINIT:
-    VT_SWITCHES *switches;
     int y;
   CODE:
 
-    _GET_SWITCHES(switches, self);
 
-    y = switches->y;
-    if ( !switches->zerobased ) ++y;
+    y = self->y;
+    if ( !self->zerobased ) ++y;
 
     RETVAL = newSViv(y);
   OUTPUT:
@@ -1180,15 +1160,13 @@ SV *attr_pack(sv, ...)
 
 SV*
 row_attr(self, row, ...)
-    SV *self
+    vt_switches_t *self
     SV *row
   PREINIT:
     SV *ret;
     int error, startcol, endcol, rownum;
-    VT_SWITCHES *switches;
   CODE:
 
-    _GET_SWITCHES(switches, self);
 
     error = 0;
     if ( !SvIOK(row) )
@@ -1212,9 +1190,9 @@ row_attr(self, row, ...)
     }
     else {
         startcol = 1;
-        endcol   = switches->num_cols;
+        endcol   = self->num_cols;
 
-        if ( switches->zerobased ) {
+        if ( self->zerobased ) {
             --startcol; --endcol;
         }
     }
@@ -1222,13 +1200,13 @@ row_attr(self, row, ...)
     if ( error )
         croak("Usage: row_attr(row, [startcol], [endcol])");
 
-    if ( !switches->zerobased ) {
+    if ( !self->zerobased ) {
         --rownum;
         --startcol;
         --endcol;
     }
 
-    ret = vt102_row_attr(switches, rownum, startcol, endcol);
+    ret = vt102_row_attr(self, rownum, startcol, endcol);
 
     RETVAL =  ret;
   OUTPUT:
@@ -1237,24 +1215,22 @@ row_attr(self, row, ...)
 
 SV*
 option_set(self, option, value)
-    SV *self
+    vt_switches_t *self
     SV *option
     SV *value
   PREINIT:
-    VT_SWITCHES *switches;
     SV *ret;
   CODE:
-    _GET_SWITCHES(switches, self);
 
     ret = NULL;
-    vt102_option_check(switches, option, value, "LINEWRAP",
-                       &switches->options.linewrap, &ret);
+    vt102_option_check(self, option, value, "LINEWRAP",
+                       &self->options.linewrap, &ret);
 
-    vt102_option_check(switches, option, value, "LFTOCRLF",
-                       &switches->options.lftocrlf, &ret);
+    vt102_option_check(self, option, value, "LFTOCRLF",
+                       &self->options.lftocrlf, &ret);
 
-    vt102_option_check(switches, option, value, "IGNOREXOFF",
-                       &switches->options.ignorexoff, &ret);
+    vt102_option_check(self, option, value, "IGNOREXOFF",
+                       &self->options.ignorexoff, &ret);
 
     if ( ret == NULL )
         XSRETURN_UNDEF;
@@ -1265,15 +1241,13 @@ option_set(self, option, value)
 
 SV*
 option_read(self, option)
-    SV *self
+    vt_switches_t *self
     SV *option
   PREINIT:
-    VT_SWITCHES *switches;
     I8 *ret;
   CODE:
-    _GET_SWITCHES(switches, self);
 
-    ret = vt102_option_return(switches, option);
+    ret = vt102_option_return(self, option);
 
     if ( ret == NULL ) {
         XSRETURN_UNDEF;
@@ -1285,14 +1259,12 @@ option_read(self, option)
 
 SV*
 callback_set(self, action, ...)
-    SV *self
+    vt_switches_t *self
     SV *action
   PREINIT:
-    VT_SWITCHES *switches;
     SV *callback;
     SV *private;
   CODE:
-    _GET_SWITCHES(switches, self);
 
     RETVAL = newSViv(0);
   OUTPUT:
@@ -1300,14 +1272,12 @@ callback_set(self, action, ...)
 
 SV*
 callback_call(self, action, param1, param2)
-    SV *self
+    vt_switches_t *self
     SV *action
     SV *param1
     SV *param2
   PREINIT:
-    VT_SWITCHES *switches;
   CODE:
-    _GET_SWITCHES(switches, self);
 
     RETVAL = newSViv(0);
   OUTPUT:
@@ -1315,16 +1285,14 @@ callback_call(self, action, param1, param2)
 
 void
 DESTROY(self)
-    SV *self
+    vt_switches_t *self
   PREINIT:
-    VT_SWITCHES *switches;
     int i;
   CODE:
-    _GET_SWITCHES(switches, self);
-    for (i = 0; i < switches->num_rows; ++i) {
-        Safefree(switches->rows[i]->cells);
-        Safefree(switches->rows[i]);
+    for (i = 0; i < self->num_rows; ++i) {
+        Safefree(self->rows[i]->cells);
+        Safefree(self->rows[i]);
     }
-    Safefree(switches->rows);
-    Safefree(switches->tabstops);
-    Safefree(switches);
+    Safefree(self->rows);
+    Safefree(self->tabstops);
+    Safefree(self);

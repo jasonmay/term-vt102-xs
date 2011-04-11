@@ -119,7 +119,7 @@
 #define COLOR_LIGHT 1
 
 #define _ISNUM(C) ( (C) >= '0' && (C) <= '9' )
-#define _GET_SWITCHES(V, O) V = INT2PTR(VT_SWITCHES*, SvIV(SvRV(O)))
+/*#define _GET_SWITCHES(V, O) V = INT2PTR(vt_switches_t*, SvIV(SvRV(O)))*/
 
 
 typedef struct _VT_ATTR {
@@ -171,7 +171,7 @@ typedef struct _VT_CALLBACKS {
     SV *linefeed;
 } VT_CALLBACKS;
 
-typedef struct _VT_SWITCHES {
+typedef struct {
     I32 x;
     I32 y;
     I32 num_cols;
@@ -197,24 +197,24 @@ typedef struct _VT_SWITCHES {
 
     VT_CALLBACKS cb;
 
-} VT_SWITCHES;
+} vt_switches_t;
 
 /* prototypes */
-VT_CELL *vt102_current_cell(VT_SWITCHES *);
+VT_CELL *vt102_current_cell(vt_switches_t *);
 char     vt102_is_csi_terminator(char);
-void     vt102_process_csi(VT_SWITCHES *, char **);
-void     vt102_process_ctl(VT_SWITCHES *, char **);
-void     vt102_process_text(VT_SWITCHES *, char **);
-void     vt102_process(VT_SWITCHES *, SV *);
-void     vt102_inc_y(VT_SWITCHES *);
-void     vt102_dec_y(VT_SWITCHES *);
-void     vt102_check_rows_param(SV *, SV *, VT_SWITCHES *);
-void     vt102_check_cols_param(SV *, SV *, VT_SWITCHES *);
-void     vt102_clear_row(VT_SWITCHES *, int);
+void     vt102_process_csi(vt_switches_t *, char **);
+void     vt102_process_ctl(vt_switches_t *, char **);
+void     vt102_process_text(vt_switches_t *, char **);
+void     vt102_process(vt_switches_t *, SV *);
+void     vt102_inc_y(vt_switches_t *);
+void     vt102_dec_y(vt_switches_t *);
+void     vt102_check_rows_param(SV *, SV *, vt_switches_t *);
+void     vt102_check_cols_param(SV *, SV *, vt_switches_t *);
+void     vt102_clear_row(vt_switches_t *, int);
 void     vt102_reset_attr(VT_ATTR *);
-SV      *vt102_row_attr(VT_SWITCHES *, int, int, int);
-void     vt102_init(VT_SWITCHES *);
-SV      *vt102_row_text(VT_SWITCHES *, int, int, int, int);
+SV      *vt102_row_attr(vt_switches_t *, int, int, int);
+void     vt102_init(vt_switches_t *);
+SV      *vt102_row_text(vt_switches_t *, int, int, int, int);
 SV      *vt102_attr_pack(int, int, int, int, int, int, int, int);
 SV      *vt102_vt_attr_pack(VT_ATTR);
 
