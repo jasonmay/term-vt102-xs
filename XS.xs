@@ -22,7 +22,7 @@
 
 /* functions */
 
-VT_CELL *vt102_current_cell(vt_switches_t *self)
+VT_CELL *vt102_current_cell(vt_state_t *self)
 {
     int x = self->x,
         y = self->y;
@@ -81,7 +81,7 @@ int vt102_has_semicolon(char *s)
     return 0;
 }
 
-void vt102_process_SGR(vt_switches_t *self)
+void vt102_process_SGR(vt_state_t *self)
 {
     char *buf = self->seq_buf;
 
@@ -188,7 +188,7 @@ void vt102_process_SGR(vt_switches_t *self)
 
 }
 
-void vt102_process_CUP(vt_switches_t *self)
+void vt102_process_CUP(vt_state_t *self)
 {
     char *buf = self->seq_buf;
 
@@ -247,7 +247,7 @@ int vt102_get_number_from_string(char *buf) {
     return ret;
 }
 
-void vt102_process_CUU(vt_switches_t *self)
+void vt102_process_CUU(vt_state_t *self)
 {
     int i, offset = vt102_get_number_from_string(self->seq_buf);
     if ( !offset ) offset = 1;
@@ -259,7 +259,7 @@ void vt102_process_CUU(vt_switches_t *self)
 
 }
 
-void vt102_process_CUD(vt_switches_t *self)
+void vt102_process_CUD(vt_state_t *self)
 {
     int i, offset = vt102_get_number_from_string(self->seq_buf);
     if ( !offset ) offset = 1;
@@ -271,7 +271,7 @@ void vt102_process_CUD(vt_switches_t *self)
 
 }
 
-void vt102_process_CUB(vt_switches_t *self)
+void vt102_process_CUB(vt_state_t *self)
 {
     int i, offset = vt102_get_number_from_string(self->seq_buf);
     if ( !offset ) offset = 1;
@@ -282,7 +282,7 @@ void vt102_process_CUB(vt_switches_t *self)
         self->x = 0;
 }
 
-void vt102_process_CUF(vt_switches_t *self)
+void vt102_process_CUF(vt_state_t *self)
 {
     int i, offset = vt102_get_number_from_string(self->seq_buf);
     if ( !offset ) offset = 1;
@@ -299,7 +299,7 @@ void vt102_clear_cell(VT_CELL *cell)
     vt102_reset_attr(&cell->attr);
 }
 
-void vt102_process_ECH(vt_switches_t *self)
+void vt102_process_ECH(vt_state_t *self)
 {
     int col, end, chars = vt102_get_number_from_string(self->seq_buf);
     if ( !chars ) chars = 1;
@@ -317,7 +317,7 @@ void vt102_process_ECH(vt_switches_t *self)
     }
 }
 
-void vt102_clear_row(vt_switches_t *self, int row)
+void vt102_clear_row(vt_state_t *self, int row)
 {
     int col;
     VT_ROW *s_row = self->rows[row];
@@ -327,7 +327,7 @@ void vt102_clear_row(vt_switches_t *self, int row)
     }
 }
 
-void vt102_process_EL(vt_switches_t *self)
+void vt102_process_EL(vt_state_t *self)
 {
     int row, col, num = vt102_get_number_from_string(self->seq_buf);
 
@@ -354,7 +354,7 @@ void vt102_process_EL(vt_switches_t *self)
     }
 }
 
-void vt102_process_ED(vt_switches_t *self)
+void vt102_process_ED(vt_state_t *self)
 {
     int row, col, num = vt102_get_number_from_string(self->seq_buf);
 
@@ -391,7 +391,7 @@ void vt102_process_ED(vt_switches_t *self)
     }
 }
 
-void vt102_process_csi(vt_switches_t *self, char **buf)
+void vt102_process_csi(vt_state_t *self, char **buf)
 {
     int i, terminated = 0;
     char c;
@@ -457,7 +457,7 @@ void vt102_process_csi(vt_switches_t *self, char **buf)
     }
 }
 
-void vt102_process_ctl(vt_switches_t *self, char **buf)
+void vt102_process_ctl(vt_state_t *self, char **buf)
 {
     char c = **buf;
     (*buf)++;
@@ -523,7 +523,7 @@ void vt102_copy_attr(VT_ATTR *src, VT_ATTR *dest) {
     dest->rv = src->rv;
 }
 
-void vt102_process_text(vt_switches_t *self, char **buf)
+void vt102_process_text(vt_state_t *self, char **buf)
 {
     VT_CELL     *cell;
 
@@ -547,7 +547,7 @@ void vt102_process_text(vt_switches_t *self, char **buf)
     return;
 }
 
-void vt102_process(vt_switches_t *self, SV *sv_in)
+void vt102_process(vt_state_t *self, SV *sv_in)
 {
     char *buf = SvPV_nolen(sv_in);
 
@@ -568,7 +568,7 @@ void vt102_process(vt_switches_t *self, SV *sv_in)
     return;
 }
 
-void vt102_dec_y(vt_switches_t *self) {
+void vt102_dec_y(vt_state_t *self) {
     int row, col;
     int end_index = self->num_rows - 1;
     VT_ROW *last_row;
@@ -591,7 +591,7 @@ void vt102_dec_y(vt_switches_t *self) {
     }
 }
 
-void vt102_inc_y(vt_switches_t *self) {
+void vt102_inc_y(vt_state_t *self) {
     int row, col;
     int end_index = self->num_rows - 1;
     VT_ROW *first_row;
@@ -617,7 +617,7 @@ void vt102_inc_y(vt_switches_t *self) {
     }
 }
 
-void vt102_check_rows_param(SV *sv_param, SV *sv_value, vt_switches_t *self)
+void vt102_check_rows_param(SV *sv_param, SV *sv_value, vt_state_t *self)
 {
     char *param = SvPV_nolen( sv_param );
     int value;
@@ -635,7 +635,7 @@ void vt102_check_rows_param(SV *sv_param, SV *sv_value, vt_switches_t *self)
     };
 }
 
-void vt102_check_cols_param(SV *sv_param, SV *sv_value, vt_switches_t *self)
+void vt102_check_cols_param(SV *sv_param, SV *sv_value, vt_state_t *self)
 {
     char *param = SvPV_nolen( sv_param );
     int value;
@@ -653,7 +653,7 @@ void vt102_check_cols_param(SV *sv_param, SV *sv_value, vt_switches_t *self)
     };
 }
 
-void vt102_check_zerobased_param(SV *sv_param, SV *sv_value, vt_switches_t *self)
+void vt102_check_zerobased_param(SV *sv_param, SV *sv_value, vt_state_t *self)
 {
     char *param = SvPV_nolen( sv_param );
 
@@ -674,7 +674,7 @@ void vt102_reset_attr(VT_ATTR *attr)
 
 }
 
-SV *vt102_row_attr(vt_switches_t *self, int row, int startcol, int endcol)
+SV *vt102_row_attr(vt_state_t *self, int row, int startcol, int endcol)
 {
     int len = (endcol - startcol + 1) * 2;
     int col;
@@ -703,7 +703,7 @@ SV *vt102_row_attr(vt_switches_t *self, int row, int startcol, int endcol)
     return ret;
 }
 
-void vt102_option_check(vt_switches_t *self, SV *option, SV *value, char *flagstr, I8 *flag, SV **ret)
+void vt102_option_check(vt_state_t *self, SV *option, SV *value, char *flagstr, I8 *flag, SV **ret)
 {
     if ( strEQ(SvPV_nolen(option), flagstr) ) {
         *ret = newSViv(*flag);
@@ -712,7 +712,7 @@ void vt102_option_check(vt_switches_t *self, SV *option, SV *value, char *flagst
     }
 }
 
-I8 *vt102_option_return(vt_switches_t *self, SV *option)
+I8 *vt102_option_return(vt_state_t *self, SV *option)
 {
     if ( strEQ(SvPV_nolen(option), "LINEWRAP") ) {
         return &self->options.linewrap;
@@ -729,7 +729,7 @@ I8 *vt102_option_return(vt_switches_t *self, SV *option)
     return NULL;
 }
 
-void vt102_init(vt_switches_t *self)
+void vt102_init(vt_state_t *self)
 {
     int x, y;
     VT_CELL *cur_cell;
@@ -769,7 +769,7 @@ void vt102_init(vt_switches_t *self)
 
 }
 
-SV* vt102_row_text(vt_switches_t *self, int rownum, int startcol, int endcol, int plain)
+SV* vt102_row_text(vt_state_t *self, int rownum, int startcol, int endcol, int plain)
 {
     SV          *ret;
     char        *retbuf;
@@ -801,7 +801,7 @@ SV* vt102_row_text(vt_switches_t *self, int rownum, int startcol, int endcol, in
     return ret;
 }
 
-void vt102_clip_row(vt_switches_t *self, int *row_var, int zerobased)
+void vt102_clip_row(vt_state_t *self, int *row_var, int zerobased)
 {
     int offset = zerobased ? 0 : 1; /* hey it's readable ok */
 
@@ -811,7 +811,7 @@ void vt102_clip_row(vt_switches_t *self, int *row_var, int zerobased)
         *row_var = self->num_rows + offset - 1;
 }
 
-void vt102_clip_col(vt_switches_t *self, int *col_var, int zerobased)
+void vt102_clip_col(vt_state_t *self, int *col_var, int zerobased)
 {
     int offset = zerobased ? 0 : 1;
 
@@ -866,13 +866,13 @@ SV*
 new(class, ...)
     SV* class
   PREINIT:
-        vt_switches_t* self;
+        vt_state_t* self;
         SV* instance;
         SV* iv_addr;
         int i;
   CODE:
 
-    New(0, self, 1, vt_switches_t);
+    New(0, self, 1, vt_state_t);
 
     self->num_cols        = DEFAULT_COLS;
     self->num_rows        = DEFAULT_ROWS;
@@ -912,18 +912,15 @@ new(class, ...)
 
 void
 process(self, buf)
-    vt_switches_t *self
+    vt_state_t *self
     SV *buf
   CODE:
-    if (!SvPOK(buf))
-        croak("Argument must be a string");
-
 
     vt102_process(self, buf);
 
 SV*
 row_plaintext(self, row, ...)
-    vt_switches_t *self
+    vt_state_t *self
     IV row
   PREINIT:
     int startcol, endcol, error;
@@ -973,7 +970,7 @@ row_plaintext(self, row, ...)
 
 SV*
 row_text(self, row, ...)
-    vt_switches_t *self
+    vt_state_t *self
     IV row
   PREINIT:
     int startcol, endcol, error;
@@ -1026,7 +1023,7 @@ row_text(self, row, ...)
 
 SV*
 size(self)
-    vt_switches_t *self
+    vt_state_t *self
   PPCODE:
 
 
@@ -1037,7 +1034,7 @@ size(self)
 
 SV*
 rows(self)
-    vt_switches_t *self
+    vt_state_t *self
   CODE:
 
 
@@ -1047,7 +1044,7 @@ rows(self)
 
 SV*
 cols(self)
-    vt_switches_t *self
+    vt_state_t *self
   CODE:
 
 
@@ -1057,7 +1054,7 @@ cols(self)
 
 SV*
 x(self)
-    vt_switches_t *self
+    vt_state_t *self
   PREINIT:
     int x;
   CODE:
@@ -1072,7 +1069,7 @@ x(self)
 
 SV*
 y(self)
-    vt_switches_t *self
+    vt_state_t *self
   PREINIT:
     int y;
   CODE:
@@ -1150,7 +1147,7 @@ SV *attr_pack(sv, ...)
 
 SV*
 row_attr(self, row, ...)
-    vt_switches_t *self
+    vt_state_t *self
     SV *row
   PREINIT:
     SV *ret;
@@ -1205,7 +1202,7 @@ row_attr(self, row, ...)
 
 SV*
 option_set(self, option, value)
-    vt_switches_t *self
+    vt_state_t *self
     SV *option
     SV *value
   PREINIT:
@@ -1231,7 +1228,7 @@ option_set(self, option, value)
 
 SV*
 option_read(self, option)
-    vt_switches_t *self
+    vt_state_t *self
     SV *option
   PREINIT:
     I8 *ret;
@@ -1249,7 +1246,7 @@ option_read(self, option)
 
 SV*
 callback_set(self, action, ...)
-    vt_switches_t *self
+    vt_state_t *self
     SV *action
   PREINIT:
     SV *callback;
@@ -1262,7 +1259,7 @@ callback_set(self, action, ...)
 
 SV*
 callback_call(self, action, param1, param2)
-    vt_switches_t *self
+    vt_state_t *self
     SV *action
     SV *param1
     SV *param2
@@ -1275,7 +1272,7 @@ callback_call(self, action, param1, param2)
 
 void
 DESTROY(self)
-    vt_switches_t *self
+    vt_state_t *self
   PREINIT:
     int i;
   CODE:

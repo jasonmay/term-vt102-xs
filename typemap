@@ -1,6 +1,6 @@
 TYPEMAP
-vt_switches_t* T_VT_SWITCHES
+vt_state_t* T_VT_SWITCHES
 
 INPUT
 T_VT_SWITCHES
-    $var = INT2PTR(vt_switches_t*, SvIV(SvRV($arg)));
+    $var = INT2PTR(vt_state_t*, SvIV(SvRV($arg)));
