@@ -120,7 +120,7 @@
 
 #define _ISNUM(C) ( (C) >= '0' && (C) <= '9' )
 
-typedef struct _VT_ATTR {
+typedef struct {
     int fg;
     int bg;
     int bo;
@@ -131,23 +131,23 @@ typedef struct _VT_ATTR {
     int rv;
 } VT_ATTR;
 
-typedef struct _VT_OPTIONS {
+typedef struct {
     I8      linewrap;
     I8      lftocrlf;
     I8      ignorexoff;
 } VT_OPTIONS;
 
-typedef struct _VT_CELL {
+typedef struct {
     VT_ATTR attr;
     char    value;
     I8      used;
 } VT_CELL;
 
-typedef struct _VT_ROW {
+typedef struct {
     VT_CELL *cells; /* array of cells (state->num_cols) */
 } VT_ROW;
 
-typedef struct _VT_DEC_STATE {
+typedef struct {
     int x;
     int y;
     VT_ATTR *attr;
@@ -155,7 +155,7 @@ typedef struct _VT_DEC_STATE {
     SV *pv_icon;  /* allocated pv */
 } VT_DEC_STATE;
 
-typedef struct _VT_CALLBACKS {
+typedef struct {
     SV *bell;
     SV *clear;
     SV *output;
