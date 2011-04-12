@@ -184,8 +184,6 @@ void vt102_process_SGR(vt_state_t *self)
 
         ++buf;
     }
-
-
 }
 
 void vt102_process_CUP(vt_state_t *self)
@@ -547,10 +545,8 @@ void vt102_process_text(vt_state_t *self, char **buf)
     return;
 }
 
-void vt102_process(vt_state_t *self, SV *sv_in)
+void vt102_process(vt_state_t *self, char *buf)
 {
-    char *buf = SvPV_nolen(sv_in);
-
     while (*buf != '\0') {
         if ( _IS_CTL( *buf ) ) {
             vt102_process_ctl(self, &buf);
@@ -913,7 +909,7 @@ new(class, ...)
 void
 process(self, buf)
     vt_state_t *self
-    SV *buf
+    char *buf
   CODE:
 
     vt102_process(self, buf);

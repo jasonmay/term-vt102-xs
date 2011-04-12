@@ -203,7 +203,7 @@ char     vt102_is_csi_terminator(char);
 void     vt102_process_csi(vt_state_t *, char **);
 void     vt102_process_ctl(vt_state_t *, char **);
 void     vt102_process_text(vt_state_t *, char **);
-void     vt102_process(vt_state_t *, SV *);
+void     vt102_process(vt_state_t *, char *);
 void     vt102_inc_y(vt_state_t *);
 void     vt102_dec_y(vt_state_t *);
 void     vt102_check_rows_param(SV *, SV *, vt_state_t *);
