@@ -170,11 +170,11 @@ typedef struct {
 } VT_CALLBACKS;
 
 typedef struct {
-    I32 x;
-    I32 y;
-    I32 num_cols;
-    I32 num_rows;
-    I32 cursor;
+    IV x;
+    IV y;
+    IV num_cols;
+    IV num_rows;
+    IV cursor;
 
     VT_ROW **rows; /* array of pointers to rows (state->num_rows) */
 

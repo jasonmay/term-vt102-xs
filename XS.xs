@@ -1028,27 +1028,27 @@ size(self)
     mPUSHs( newSViv(self->num_cols) );
     mPUSHs( newSViv(self->num_rows) );
 
-SV*
+IV
 rows(self)
     vt_state_t *self
   CODE:
 
 
-    RETVAL = newSViv(self->num_rows);
+    RETVAL = self->num_rows;
   OUTPUT:
     RETVAL
 
-SV*
+IV
 cols(self)
     vt_state_t *self
   CODE:
 
 
-    RETVAL = newSViv(self->num_cols);
+    RETVAL = self->num_cols;
   OUTPUT:
     RETVAL
 
-SV*
+IV
 x(self)
     vt_state_t *self
   PREINIT:
@@ -1059,22 +1059,22 @@ x(self)
     x = self->x;
     if ( !self->zerobased ) ++x;
 
-    RETVAL = newSViv(x);
+    RETVAL = x;
   OUTPUT:
     RETVAL
 
-SV*
+IV
 y(self)
     vt_state_t *self
   PREINIT:
-    int y;
+    IV y;
   CODE:
 
 
     y = self->y;
     if ( !self->zerobased ) ++y;
 
-    RETVAL = newSViv(y);
+    RETVAL = y;
   OUTPUT:
     RETVAL
 
@@ -1149,7 +1149,6 @@ row_attr(self, rownum, ...)
     SV *ret;
     int error, startcol, endcol;
   CODE:
-
 
     error = 0;
 
