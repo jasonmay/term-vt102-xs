@@ -1217,7 +1217,7 @@ option_set(self, option, value)
   OUTPUT:
     RETVAL
 
-SV*
+IV
 option_read(self, option)
     vt_state_t *self
     SV *option
@@ -1231,7 +1231,7 @@ option_read(self, option)
         XSRETURN_UNDEF;
     }
 
-    RETVAL = newSViv(*ret);
+    RETVAL = *ret;
   OUTPUT:
     RETVAL
 
