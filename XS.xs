@@ -670,7 +670,7 @@ void vt102_reset_attr(VT_ATTR *attr)
 
 }
 
-SV *vt102_row_attr(vt_state_t *self, int row, int startcol, int endcol)
+SV *vt102_row_attr(vt_state_t *self, IV row, IV startcol, IV endcol)
 {
     int len = (endcol - startcol + 1) * 2;
     int col;
@@ -1142,20 +1142,16 @@ SV *attr_pack(sv, ...)
     RETVAL
 
 SV*
-row_attr(self, row, ...)
+row_attr(self, rownum, ...)
     vt_state_t *self
-    SV *row
+    IV rownum
   PREINIT:
     SV *ret;
-    int error, startcol, endcol, rownum;
+    int error, startcol, endcol;
   CODE:
 
 
     error = 0;
-    if ( !SvIOK(row) )
-        error = 1;
-
-    rownum = SvIV(row);
 
     if ( items != 2 && items != 4 ) {
         error = 1;

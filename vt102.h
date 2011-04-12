@@ -210,7 +210,7 @@ void     vt102_check_rows_param(SV *, SV *, vt_state_t *);
 void     vt102_check_cols_param(SV *, SV *, vt_state_t *);
 void     vt102_clear_row(vt_state_t *, int);
 void     vt102_reset_attr(VT_ATTR *);
-SV      *vt102_row_attr(vt_state_t *, int, int, int);
+SV      *vt102_row_attr(vt_state_t *, IV, IV, IV);
 void     vt102_init(vt_state_t *);
 SV      *vt102_row_text(vt_state_t *, int, int, int, int);
 SV      *vt102_attr_pack(int, int, int, int, int, int, int, int);
