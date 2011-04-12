@@ -552,7 +552,7 @@ void vt102_process_text(vt_state_t *self)
 void vt102_process(vt_state_t *self)
 {
     while (self->cur < self->end) {
-        if ( _IS_CTL( *self->cur ) ) {
+        if ( *self->cur >= 0 && *self->cur <= 0x1f ) {
             vt102_process_ctl(self);
         }
         else if ( *self->cur != 127 ) {
