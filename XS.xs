@@ -89,7 +89,7 @@ void vt102_process_SGR(vt_state_t *self)
     if (!*buf)
         vt102_reset_attr(&self->attr);
 
-    while (*buf) {
+    while (*buf && buf - self->seq_buf < 64) {
         char next_char = *(buf + 1);
 
         /* 30-37 */
@@ -389,20 +389,24 @@ void vt102_process_ED(vt_state_t *self)
     }
 }
 
-void vt102_process_csi(vt_state_t *self, char **buf)
+void vt102_process_csi(vt_state_t *self)
 {
     int i, terminated = 0;
     char c;
 
     for (i = 0; i < 64; ++i) {
-        c = *( (*buf) + i );
+
+        if ( self->cur + i >= self->end )
+            break;
+
+        c = *(self->cur + i);
 
         if ( !c )
             break;
 
         if ( vt102_is_csi_terminator(c) ) {
             self->seq_buf[i] = '\0';
-            (*buf) += i + 1;
+            self->cur += i + 1;
             terminated = 1;
             switch (c) {
                 case CSI_SGR:
@@ -455,10 +459,10 @@ void vt102_process_csi(vt_state_t *self, char **buf)
     }
 }
 
-void vt102_process_ctl(vt_state_t *self, char **buf)
+void vt102_process_ctl(vt_state_t *self)
 {
-    char c = **buf;
-    (*buf)++;
+    char c = *self->cur;
+    ++self->cur;
 
     if ( self->xon == 0 )
         return;
@@ -492,12 +496,12 @@ void vt102_process_ctl(vt_state_t *self, char **buf)
 
         case CHAR_CTL_ESC:
             /* our beloved \e[...# */
-            if ( **buf == '[' ) {
-                ++(*buf);
-                vt102_process_csi(self, buf);
+            if ( *self->cur == '[' ) {
+                ++self->cur;
+                vt102_process_csi(self);
             }
-            if ( **buf == 'M' ) {
-                ++(*buf);
+            if ( *self->cur == 'M' ) {
+                ++self->cur;
                 vt102_dec_y(self);
             }
             break;
@@ -521,7 +525,7 @@ void vt102_copy_attr(VT_ATTR *src, VT_ATTR *dest) {
     dest->rv = src->rv;
 }
 
-void vt102_process_text(vt_state_t *self, char **buf)
+void vt102_process_text(vt_state_t *self)
 {
     VT_CELL     *cell;
 
@@ -536,7 +540,7 @@ void vt102_process_text(vt_state_t *self, char **buf)
     }
 
     cell        = &self->rows[self->y]->cells[self->x];
-    cell->value = **buf;
+    cell->value = *self->cur;
     cell->used  = 1;
     vt102_copy_attr(&self->attr, &cell->attr);
 
@@ -545,18 +549,18 @@ void vt102_process_text(vt_state_t *self, char **buf)
     return;
 }
 
-void vt102_process(vt_state_t *self, char *buf)
+void vt102_process(vt_state_t *self)
 {
-    while (*buf != '\0') {
-        if ( _IS_CTL( *buf ) ) {
-            vt102_process_ctl(self, &buf);
+    while (self->cur < self->end) {
+        if ( _IS_CTL( *self->cur ) ) {
+            vt102_process_ctl(self);
         }
-        else if ( *buf != 127 ) {
-            vt102_process_text(self, &buf);
-            ++buf;
+        else if ( *self->cur != 127 ) {
+            vt102_process_text(self);
+            ++self->cur;
         }
         else {
-            ++buf;
+            ++self->cur;
         }
 
     }
@@ -907,12 +911,17 @@ new(class, ...)
     RETVAL
 
 void
-process(self, buf)
+process(self, sv_buf)
     vt_state_t *self
-    char *buf
+    SV         *sv_buf
+  PREINIT:
+    STRLEN      len;
   CODE:
 
-    vt102_process(self, buf);
+    self->cur = SvPVX(sv_buf);
+    self->end = SvEND(sv_buf);
+
+    vt102_process(self);
 
 SV*
 row_plaintext(self, row, ...)

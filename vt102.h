@@ -178,6 +178,9 @@ typedef struct {
 
     VT_ROW **rows; /* array of pointers to rows (state->num_rows) */
 
+    char *cur;
+    char *end;
+
     char seq_buf[64];
 
     VT_OPTIONS options;
@@ -200,10 +203,10 @@ typedef struct {
 /* prototypes */
 VT_CELL *vt102_current_cell(vt_state_t *);
 char     vt102_is_csi_terminator(char);
-void     vt102_process_csi(vt_state_t *, char **);
-void     vt102_process_ctl(vt_state_t *, char **);
-void     vt102_process_text(vt_state_t *, char **);
-void     vt102_process(vt_state_t *, char *);
+void     vt102_process_csi(vt_state_t *);
+void     vt102_process_ctl(vt_state_t *);
+void     vt102_process_text(vt_state_t *);
+void     vt102_process(vt_state_t *);
 void     vt102_inc_y(vt_state_t *);
 void     vt102_dec_y(vt_state_t *);
 void     vt102_check_rows_param(SV *, SV *, vt_state_t *);
