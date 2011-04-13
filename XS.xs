@@ -399,7 +399,7 @@ void vt102_process_csi(vt_state_t *self)
         if ( self->cur + i >= self->end )
             break;
 
-        c = *(self->cur + i);
+        c = self->cur[i];
 
         if ( !c )
             break;
