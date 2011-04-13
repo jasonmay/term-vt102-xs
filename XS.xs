@@ -496,13 +496,16 @@ void vt102_process_ctl(vt_state_t *self)
 
         case CHAR_CTL_ESC:
             /* our beloved \e[...# */
-            if ( *self->cur == '[' ) {
-                ++self->cur;
-                vt102_process_csi(self);
-            }
-            if ( *self->cur == 'M' ) {
-                ++self->cur;
-                vt102_dec_y(self);
+            switch (*self->cur) {
+                case '[':
+                    ++self->cur;
+                    vt102_process_csi(self);
+                    break;
+
+                case 'M':
+                    ++self->cur;
+                    vt102_dec_y(self);
+                    break;
             }
             break;
         default:
