@@ -775,33 +775,34 @@ void vt102_init(vt_state_t *self)
 SV* vt102_row_text(vt_state_t *self, int rownum, int startcol, int endcol, int plain)
 {
     SV          *ret;
-    char        *retbuf;
+    SV        *retbuf;
     int          i, len;
+    char cell_value;
 
     VT_CELL     *cell;
 
     len = endcol - startcol + 1;
-    New(0, retbuf, len, char);
+    retbuf = newSVpv("", 0);
 
+    //croak(form("%d %d", startcol, endcol));
     for (i = startcol; i <= endcol; ++i) {
 
-        /*fprintf(stderr, "Text: %d, x=%d y=%d\r\n",
+     /*   fprintf(stderr, "Text: %d, x=%d y=%d\r\n",
             retbuf[i], i, rownum-1);*/
 
         cell = &self->rows[rownum]->cells[i];
 
         if (plain) {
-            retbuf[i] = cell->value ? cell->value : ' ';
+            cell_value = cell->value ? cell->value : ' ';
         }
         else {
-            retbuf[i] = cell->value;
+            cell_value = cell->value;
         }
+
+        sv_catpvf(retbuf, "%c", cell_value);
     }
 
-    ret = newSVpv(retbuf, len);
-    Safefree(retbuf);
-
-    return ret;
+    return retbuf;
 }
 
 void vt102_clip_row(vt_state_t *self, int *row_var, int zerobased)
