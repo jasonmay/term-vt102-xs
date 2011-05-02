@@ -686,9 +686,7 @@ SV *vt102_row_attr(vt_state_t *self, IV row, IV startcol, IV endcol)
     int col;
     char *bufpv;
 
-    SV *ret;
-
-    New(0, bufpv, len, char);
+    SV *ret = newSVpv("", 0);
 
     for (col = startcol; col <= endcol; ++col) {
         char *pack;
@@ -699,12 +697,8 @@ SV *vt102_row_attr(vt_state_t *self, IV row, IV startcol, IV endcol)
 
         sv_pack = vt102_vt_attr_pack(*attr);
         pack = SvPV_nolen(sv_pack);
-        *(bufpv + idx)     = pack[0];
-        *(bufpv + idx + 1) = pack[1];
+        sv_catpvf(ret, "%c%c", pack[0], pack[1]);
     }
-
-    ret = newSVpv(bufpv, len);
-    Safefree(bufpv);
 
     return ret;
 }
