@@ -225,6 +225,9 @@ void vt102_process_CUP(vt_state_t *self)
 
     self->x = to_x;
     self->y = to_y;
+
+    if (self->x >= self->num_cols) self->x = self->num_cols - 1;
+    if (self->y >= self->num_rows) self->y = self->num_rows - 1;
 }
 
 int vt102_get_number_from_string(char *buf) {
