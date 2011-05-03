@@ -10,6 +10,11 @@ require Term::VT102::XS;
 require 't/testbase';
 
 run_tests ([(
+  [ 3, 3, "\e[4H.",		# boundary test
+    "\0" x 3,
+    "\0" x 3,
+    ".\0\0",
+  ],
   [ 20, 5, "\e[2;4Hline 1\r\nline 2",		# CUP - ESC [ y ; x H
     "\0" x 20,
     ("\0" x 3) . "line 1" . ("\0" x 11),
